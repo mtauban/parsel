@@ -17,9 +17,9 @@ class Config:
     SECURITY_PASSWORD_SALT = environ.get("SECURITY_PASSWORD_SALT")
     SECURITY_SEND_REGISTER_EMAIL = False
     # Database
-    # SQLALCHEMY_DATABASE_URI = "sqlite:////Users/mtauban/Work/sandbox/parcelle/dev/test.db" # environ.get("SQLALCHEMY_DATABASE_URI")
-    SQLALCHEMY_DATABASE_URI = "postgresql://testfor_psl_user:pass@127.0.0.1/testfor_psl"
+    SQLALCHEMY_DATABASE_URI = environ.get('DATABASE_URI',"postgresql://userparcel:87wzofBVZw20HDM@127.0.0.1/userparcel")
 
+            
     SQLALCHEMY_ECHO = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
