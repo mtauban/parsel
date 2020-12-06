@@ -1,0 +1,156 @@
+{% extends 'layout.html' %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+crossorigin=""/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/notiflix-2.6.0.min.css') }}" />
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/ux.css') }}">
+{% endblock %}
+
+
+{% block content %}
+{% include 'navbis.html' %}
+
+
+<section class="bg-white h-100">
+  <div class="container py-5">
+    <h1 class="py-5">Mes Plans</h1>
+    <p class="py-3"><a href="/map">Nouveau Plan</a></p>
+    <ul class="list-group list-group-flush">
+      {% for plan in plan_liste %}
+      <li class="list-group-item py-4">
+        <div class="row">
+          <div class="col-md-4">
+            <h5 class="row">
+              <div class="col-1 col-md-2 col-lg-2 pr-1 d-flex justify-content-center align-items-center">
+                <i class="fas fa-map-marker-alt"></i>
+              </div>
+              <div class="col">
+                <span> {{ plan.commune }}</span>
+              </div>
+            </h5>
+            <h6 class="text-muted row">
+              <div class="col-1 col-md-2 col-lg-2 pr-1 d-flex justify-content-center align-items-center">
+                &#931;
+              </div>
+              <div class="col">
+                <span> {{ plan.contenance }} </span>
+              </div>
+            </h6>
+            <h6 class="text-muted row">
+              <div class="col-1 col-md-2 col-lg-2 pr-1 d-flex justify-content-center align-items-center">
+                <i class="fas fa-calculator"></i>
+              </div>
+              <div class="col">
+                <span> {{ plan.parcels|length }}</span>
+              </div>
+            </h6>
+          </div>
+          <div class="col-md-1">
+            {{ plan.toSVG('100%', ['tinymap'])|safe }}
+          </div>
+          <div class="col-md-7">
+            <div class="px-0 px-md-3 py-2 py-md-0 d-flex flex-column justify-content-between h-100">
+              <div>
+                <h3 class="card-title">
+                  {{ plan.name }}
+                </h3>
+                <p class="card-text">
+                  {{ plan.private_text }}
+                </p>
+              </div>
+              <div>
+                <div class="d-flex justify-content-between align-items-center">
+                  <div class="text-muted">
+                    <small class="">Dernière modification : {{ plan.updated_on }}</small>
+                  </div>
+                  <div>
+                    <a class="btn btn-outline-dark" href="{{ url_for('map_view', mapid = plan.id) }}">
+                      <i class="far fa-eye"></i>
+                    </a>
+                    <a class="btn btn-outline-dark"  href="{{ url_for('map_edit', mapid = plan.id) }}">
+                      <i class="far fa-edit"></i>
+                    </a>
+                    <button  type="button" data-uid="{{plan.id}}" class="delete-button btn btn-outline-dark">
+                      <i class="far fa-trash-alt"></i>
+                    </button>
+
+                    <!-- <button class="btn btn-outline-dark dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false"><svg width="1em" height="1em" viewBox="0 0 16 16" class="bi bi-box-arrow-up-right" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+                      <path fill-rule="evenodd" d="M8.636 3.5a.5.5 0 0 0-.5-.5H1.5A1.5 1.5 0 0 0 0 4.5v10A1.5 1.5 0 0 0 1.5 16h10a1.5 1.5 0 0 0 1.5-1.5V7.864a.5.5 0 0 0-1 0V14.5a.5.5 0 0 1-.5.5h-10a.5.5 0 0 1-.5-.5v-10a.5.5 0 0 1 .5-.5h6.636a.5.5 0 0 0 .5-.5z"/>
+                      <path fill-rule="evenodd" d="M16 .5a.5.5 0 0 0-.5-.5h-5a.5.5 0 0 0 0 1h3.793L6.146 9.146a.5.5 0 1 0 .708.708L15 1.707V5.5a.5.5 0 0 0 1 0v-5z"/>
+                    </svg></button>
+                    <ul class="dropdown-menu">
+                      <li><a class="dropdown-item" href="#">Exporter en SVG</a></li>
+                      <li><a class="dropdown-item" href="#">Exporter en DXF</a></li>
+                      <li><a class="dropdown-item" href="#">Exporter en PDF </a></li>
+                      <li><hr class="dropdown-divider"></li>
+                      <li><a class="dropdown-item" href="#">Partager</a></li>
+                    </ul> -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </li>
+      {% endfor %}
+
+
+    </ul>
+  </div>
+</section>
+
+
+
+{% endblock %}
+
+
+
+{% block scripts %}
+
+
+<script src="{{ url_for('static', filename='js/notiflix-2.6.0.min.js') }}"></script>
+<script>
+var csrf_token = "{{ csrf_token() }}";
+
+
+
+$.ajaxSetup({
+  beforeSend: function(xhr, settings) {
+    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+      xhr.setRequestHeader("X-CSRFToken", csrf_token);
+    }
+  }
+});
+
+
+$(document).ready(function() {
+  $('.delete-button').click(function(){
+    el = $(this)
+    Notiflix.Confirm.Show(
+      'Suppression de plan',
+      'Est-ce que vous voulez vraiment supprimer ce plan ?',
+      'Oui','Non',
+      function(){ // Yes button callback
+        $.ajax({
+          type: "DELETE",
+          url: "/mapdelete/"+el.data('uid'),
+          // The key needs to match your method's input parameter (case-sensitive).
+          success: function(data){
+            console.log(data)
+            location.reload();
+          },
+          error: function(errMsg) {
+            console.log(errMsg);
+          }
+        });
+      },
+      function(){ // No button callback
+
+      });
+
+    });
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,66 @@
+{% extends "layout.html" %}
+{% from "security/_macros.html" import render_field_with_errors, render_field %}
+
+
+
+{% block content %}
+{% include 'navbis.html' %}
+
+<div class="container-sm py-5">
+<div class="p-1">
+<p>
+    Si vous disposez déjà d'un compte,
+    <a href="{{ url_for_security('login') }}{% if 'next' in request.args %}?next={{ request.args.next|urlencode }}{% endif %}">c'est par ici&nbsp;!</a>
+</p>
+</div>
+
+<div class="p-1">
+En vous inscrivant, vous acceptez les conditions d'utilisation du site et vous donnez
+votre consentement pour l'utilisation de vos données tel que décrit dans nos <a href="{{ url_for('legal') }}" target="_blank">mentions légales</a>.
+</div>
+</div>
+<div class="d-flex flex-column py-5 justify-content-center align-items-center">
+
+    <div class="card rounded shadow p-3 p-md-4 col-10 col-sm-6">
+                               <h3 class="text-center font-weight-bold text-primary">
+    S'enregistrer
+  </h3>
+
+      {%- with messages = get_flashed_messages(with_categories=true) -%}
+        {% if messages %}
+          <div>
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category | securitycss }}">{{ message }}</div>
+          {% endfor %}
+          <div>
+        {% endif %}
+      {%- endwith %}
+
+
+      <div>
+
+        <form action="{{ url_for_security('register') }}" method="POST" name="register_user_form">
+          {{ register_user_form.hidden_tag() }}
+          <div class="mb-3">
+            <label for="{{ register_user_form.email.id}}" class="form-label">Email</label>
+            {{ register_user_form.email( class="form-control",  placeholder="name@example.com")}}
+          </div>
+          <div class="mb-3">
+            <label for="{{ register_user_form.password.id}}" class="form-label">Mot de passe</label>
+            {{ register_user_form.password( class="form-control",  placeholder="************")}}
+          </div>
+          {% if register_user_form.password_confirm %}
+          <div class="mb-3">
+            <label for="{{ register_user_form.password_confirm.id}}" class="form-label">Confirmation du mot de passe</label>
+            {{ register_user_form.password_confirm( class="form-control",  placeholder="************")}}
+          </div>
+          {% endif %}
+          {{ render_field(register_user_form.submit, class="btn btn-primary", value="S'enregistrer" ) }}
+          </form>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+{% endblock %}

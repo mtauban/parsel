@@ -1,0 +1,29 @@
+
+
+.leaflet-tooltip{
+  border: none;
+  box-shadow: none;
+}
+.maplabel {
+background: transparent;
+border: Opx;
+color: black;
+
+}
+
+.square {
+  position: relative;
+  width: 100%;
+}
+
+.square:after {
+  content: "";
+  display: block;
+  padding-bottom: 100%;
+}
+
+.ddmapview {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}

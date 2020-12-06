@@ -1,0 +1,56 @@
+{% extends "layout.html" %}
+{% from "security/_macros.html" import render_field_with_errors, render_field, render_field_errors %}
+
+
+
+
+{% block content %}
+
+{% include 'navbis.html' %}
+
+
+<div class="d-flex flex-column py-5 justify-content-center align-items-center">
+
+  <div class="card rounded shadow p-3 p-md-4 col-10 col-sm-6">
+    <h3 class="text-center font-weight-bold text-primary">
+      Se connecter
+    </h3>
+<!--
+    {%- with messages = get_flashed_messages(with_categories=true) -%}
+    {% if messages %}
+    <div>
+      {% for category, message in messages %}
+      <div class="alert alert-{{ category | securitycss }}">{{ message }}</div>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {%- endwith %} -->
+    <form action="{{ url_for_security('login') }}{% if 'next' in request.args %}?next={{ request.args.next|urlencode }}{% endif %}" method="POST" name="login_user_form">
+      {{ login_user_form.hidden_tag() }}
+      <div class="mb-3">
+        <label for="{{ login_user_form.email.id}}" class="form-label">Email</label>
+        {{ login_user_form.email( class="form-control",  placeholder="name@example.com")}}
+        {{ render_field_errors( login_user_form.email)}}
+      </div>
+      <div class="mb-3">
+        <label for="{{ login_user_form.password.id}}" class="form-label">Mot de passe</label>
+        {{ login_user_form.password( class="form-control",  placeholder="************")}}
+          {{ render_field_errors( login_user_form.password)}}
+      </div>
+      <div class="form-check form-switch">
+        {{ login_user_form.remember(class="form-check-input" ) }}
+        <label class="form-check-label" for="{{ login_user_form.remember.id }}">Se souvenir de moi</label>
+      </div>
+      {{ render_field_errors(login_user_form.csrf_token) }}
+      {{ render_field(login_user_form.submit, class="btn btn-dark", value="Se connecter" ) }}
+    </form>
+
+    <a href="/reset">Mot de passe oublié ?</a>
+  </div>
+</div>
+
+
+
+</div>
+
+{% endblock %}

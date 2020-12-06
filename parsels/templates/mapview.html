@@ -1,0 +1,162 @@
+{% extends 'layout.html' %}
+
+
+{% block stylesheets %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+crossorigin=""/>
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/ux.css') }}">
+{% endblock %}
+
+
+{% block content %}
+
+{% include 'navbis.html' %}
+
+<div class="container square py-5 w-100">
+    <div id="mapid" class="ddmapview"></div>
+</div>
+
+<div class="container-sm">
+  <h5 class="mt-5">Description</h5>
+  <p>Contact : <span id="mapuseremail"></span></p>
+  <p>Superficie totale : <span id="lbl-contenance">0</span> &#13217;</p>
+  <p id="mappublicdesc"/>
+<h5 class="mt-5">Parcelles</h5>
+  <table class="table" id="parcelletable">
+    <thead>
+      <tr>
+        <th scope="col">Commune</th>
+        <th scope="col">Prefixe</th>
+        <th scope="col">Section</th>
+        <th scope="col">Numéro</th>
+        <th scope="col">Contenance</th>
+        <th scope="col">Notes</th>
+      </tr>
+    </thead>
+    <tbody>
+    </tbody>
+  </table>
+
+</div>
+
+{% endblock %}
+
+
+{% block scripts %}
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+crossorigin=""></script>
+
+  <script src="{{ url_for('static', filename='js/util_refactor.js') }}"></script>
+<script>
+
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader("X-CSRFToken", csrf_token);
+        }
+    }
+});
+
+
+function style(feature) {
+  return {
+    fillColor: '#FFFFFF',
+    weight: 5,
+    opacity: 1,
+    color: 'var(--bs-teal)',
+    fillOpacity: 0.7
+  };
+}
+  var contenance = 0 ;
+
+  var flagautoload = true ;
+  var flaglock = false ;
+  const parcellelist = new Set();
+  const highlightlist = new Set();
+
+  var ids =[] ;
+
+  var mymap = L.map('mapid', { zoomControl: false });
+
+  var osmLayer = L.tileLayer(   'https://tiles.wmflabs.org/osm-no-labels/{z}/{x}/{y}.png' , {// 'http://{s}.tile.osm.org/{z}/{x}/{y}.png', { // LIGNE 20   'https://tiles.wmflabs.org/bw-mapnik/{z}/{x}/{y}.png', { //
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19,
+    minZoom:1
+  });
+  mymap.addLayer(osmLayer);
+
+
+  function loadmap() {
+    $.ajax({
+      //URL de l'API
+      //url: "{{ url_for('getparcels', lat = "x", lon = "y",delta = 0.005) }}".replace("/x", "/"+(lat)).replace("/y", "/"+(lon)),
+      // "{{ url_for('getparcels', lat = lat , lon= lon , delta = 0.005) }}",
+      url: "{{ url_for('getmap', mapid = mapid  ) }}",
+      //Type de données
+      dataType: "json",
+      //Méthode appelée lorsque le téléchargement a fonctionné
+      success: function(data){ loadmapjson(data,mymap,true)},
+      //Méthode appelée lorsque le téléchargement a échoué
+      error: function() {
+        alert("Erreur lors du téléchargement !");
+      }
+    });
+  }
+  loadmap()
+
+
+  function loadmapjson(geojson, mymap, fit = false) {
+    console.log(geojson)
+
+    // geojson object contains the features, need to be cleaned before display
+    var layer = L.geoJSON(geojson, {
+      style : style,
+      onEachFeature: function (feature, layer) {
+        layer.bindTooltip(feature.properties.numero, {permanent: true, direction : 'center', opacity: 0.7, className: 'maplabel'});
+      //  layer.setIcon(L.divIcon({className: 'maplabel'}));
+        layer.on({
+          click: function(e){ whenClicked(e.target) }
+        });
+        {
+          parcellelist.add(layer.feature.id)
+          highlightlist.add(layer.feature.id)
+          contenance += layer.feature.properties.contenance ;
+          // var li = document.createElement('li');
+          // li.id = layer.feature.id ;
+          // li.addClass("list-group-item d-flex justify-content-between align-items-center")
+          // li.appendChild(document.createTextNode(layer.feature.id));
+          // span.text(number_format(layer.feature.properties.contenance, 0, ',', '\u00A0')+	"\u00A0\u33A1")
+          $("#parcelletable tbody").append("<tr>\
+            <td>"+feature.properties.commune+"</td> \
+            <td>"+feature.properties.prefixe+"</td> \
+            <td>"+feature.properties.section+"</td> \
+            <td>"+feature.properties.numero+"</td> \
+            <td>"+number_format(layer.feature.properties.contenance, 0, ',', '\u00A0')+	"\u00A0\u33A1"+"</td> \
+            <td>"+( feature.properties.private_text == null ? "" : feature.properties.private_text )+"</td> \
+            </tr>");
+        }
+      }
+    });
+      $("#lbl-contenance").text(number_format(contenance, 0, ',', '\u00A0'))
+
+
+    layer.addTo(mymap);
+    if (fit) {
+      mymap.fitBounds(layer.getBounds())
+    }
+    plan = geojson.properties
+    $( "#maptitle" ).text( (geojson.properties.name == null) ? "Plan Sans Titre" : geojson.properties.name)
+    $( "#mappublicdesc" ).html( (geojson.properties.name == null) ? "Description publique" : marked(geojson.properties.public_text))
+    $( "#mapprivatedesc" ).val( (geojson.properties.name == null) ? "Notes privées" : geojson.properties.private_text)
+    $( "#mapuseremail" ).text( (geojson.properties.name == null) ? "Notes privées" : geojson.properties.user_email)
+  }
+
+
+
+
+</script>
+{% endblock %}

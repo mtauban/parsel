@@ -1,0 +1,96 @@
+/* RESIZE THE WEBPAGE TO SEE THE AFFECT */
+
+/* With Autoprefixer Applied */
+@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+
+
+html, body, #container {
+  height: 100%;
+  overflow: hidden;
+  width: 100%;
+}
+
+
+body {
+  font-family: 'Roboto', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  color: var(--bs-gray-dark);
+  overflow-x: hidden;
+}
+
+
+.navbar {
+  position: fixed;
+  z-index: 1;
+  top: 0;
+  right: 0;
+  left: 0;
+  background: #FFFFFFBB;
+  height: 60px ;
+  padding: 0.2em;
+}
+
+footer {
+    position: fixed;
+    height: 2em;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    background: white;
+}
+
+
+body > div.mcontainer {
+    position: fixed;
+    top: 60px ;
+    bottom: 0;
+    right: 0;
+    left: 0;
+    vertical-align: top;
+    width: 100%;
+}
+
+.map-frame {
+
+}
+
+#mapid {
+  height: 100%;
+  width: 100%;
+  float: left;
+}
+
+
+#infid {
+box-sizing: border-box;
+  top: 0px;
+  padding-top: 72px;
+  z-index: 314158;
+      background: #FFFFFFBB;
+      position: absolute;
+      height: 100%;
+      max-width: 576px;
+      overflow: scroll;
+}
+
+
+.tinymap {
+  fill:var(--bs-blue) ;
+  color:var(--bs-blue) ;
+  stroke-width : 1px;
+  width: 50px;
+    height:auto;
+  }
+
+.tinymap:hover{
+  /* color: FFFFFF;
+  fill: #FFFFFF;
+  background-color:#0e1a25; */
+  -webkit-transform: scale(1.5);
+          transform: scale(1.5);
+  -webkit-transition: background-color 0.5s, -webkit-transform 0.5s ease-out;
+  transition: background-color 0.5s, -webkit-transform 0.5s ease-out;
+  transition: background-color 0.5s, transform 0.5s ease-out;
+  transition: background-color 0.5s, transform 0.5s ease-out, -webkit-transform 0.5s ease-out;
+}

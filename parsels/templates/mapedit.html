@@ -1,0 +1,721 @@
+<!DOCTYPE html>
+<html><head>
+
+  <title>map edit</title>
+
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='icon/path.svg') }}">
+
+  <link rel="stylesheet" href="https//code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-CuOF+2SnTUfTwSZjCXf01h7uYhfOBuxIhGKPbfEJ3+FqH/s6cIFN9bGr1HmAg4fQ" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin="">
+  <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.css"> -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/notiflix-2.6.0.min.css') }}" />
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/leaflet-sidebar.css') }}">
+  <style>
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+  #mapid {
+    width: 600px;
+    height: 400px;
+  }
+  .leaflet-container {
+    font : unset ;
+  }
+  .leaflet-popup-content p {
+    margin : unset;
+  }
+  </style>
+
+  <style>body { padding: 0; margin: 0; } #mapid { height: 100%; width: 100vw; }</style>
+</head>
+<body>
+
+  <div id="sidebar" class="sidebar collapsed">
+    <!-- Nav tabs -->
+    <div class="sidebar-tabs">
+      <ul role="tablist">
+        <li><a href="#home" role="tab"><i class="fa fa-edit"></i></a></li>
+        <li><a href="#list" role="tab"><i class="fa fa-list"></i></a></li>
+        <li><a href="#search" role="tab"><i class="fas fa-plus-circle"></i></a></li>
+        <li><a href="#" onclick="locateuser()" role="button"><i class="fas fa-street-view"></i></a></li>
+      </ul>
+
+      <ul role="tablist">
+        <li><a href="#" role="button" onclick="savemap()"><i class="fa fa-save"></i></a></li>
+
+        <li><a href="#"  onclick="toggleSatellite()"  role="button"><i class="fas fa-satellite"></i></a></li>
+        <li><a href="{{ url_for('map_list')}}" role="tab"><i class="fa fa-times"></i></a>
+        </ul>
+      </div>
+
+      <!-- Tab panes -->
+      <div class="sidebar-content">
+        <div class="sidebar-pane" id="home">
+          <h1 class="sidebar-header">
+            Edition
+            <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+          </h1>
+
+
+          <div class="mb-3 mt-3">
+            <label for="maptitle" class="form-label">Titre</label>
+
+            <input type="text" class="form-control" id="maptitle">
+
+          </div>
+
+          <div class="mb-3">
+            <label for="mapcommune" class="form-label">Commune</label>
+
+              <input type="text" class="form-control" id="mapcommune">
+
+          </div>
+
+          <div class="mb-3">
+            <label for="public_text" class="form-label">Texte Public</label>
+              <textarea  class="form-control" id="public_text" ></textarea>
+
+          </div>
+
+          <div class="mb-3">
+            <label for="private_text" class="form-label">Texte Privé</label>
+
+              <textarea  class="form-control" id="private_text" ></textarea>
+
+          </div>
+
+          <div class="row mb-3">
+
+            <div class="col-sm-10 offset-sm-2">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="mapactive" checked>
+                <label class="form-check-label" for="mapactive">Plan Actif</label>
+              </div>
+            </div>
+
+
+          </div>
+
+          <div class="row mb-3">
+
+            <div class="col-sm-10 offset-sm-2">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="mappublic" checked>
+                <label class="form-check-label" for="mappublic">Plan Public</label>
+              </div>
+            </div>
+
+
+          </div>
+
+          <div class="row mb-3">
+
+            <div class="col-sm-10 offset-sm-2">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" id="mapshow_contact" checked>
+                <label class="form-check-label" for="mapshow_contact">Afficher votre contact</label>
+              </div>
+            </div>
+
+
+          </div>
+
+        </div>
+
+
+        <div class="sidebar-pane" id="list">
+          <h1 class="sidebar-header">Liste<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h1>
+          <div class="mt-3">
+            <p class="mt-5">Les parcelles de  votre plan apparaissent ci-dessous. </p>
+            <ul class="list-group" id="parcelleul">
+            </ul></div>
+
+
+
+            <!-- <table class="table" id="parcelletable">
+            <thead>
+            <tr>
+            <th scope="col">Parcelle</th>
+            <th scope="col">Contenance</th>
+            <th scope="col">Notes</th>
+          </tr>
+        </thead>
+        <tbody>
+      </tbody>
+    </table> -->
+  </div>
+
+  <div class="sidebar-pane" id="search">
+    <h1 class="sidebar-header">Ajouter des parcelles<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h1>
+
+
+
+
+    <div class="input-group mt-2">
+      <input id="parcellesearch" type="text" class="form-control" placeholder="AB 1234" aria-label="Numéro de parcelle" aria-describedby="button-search">
+      <button class="btn btn-primary" type="button" id="button-search">Rechercher</button>
+    </div>
+
+    <div class="input-group mt-2">
+      <button class=" btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown" aria-expanded="false"><i class="fas fa-passport"></i> Charger le cadastre</button>
+      <ul class="dropdown-menu">
+        <li><a class="dropdown-item" onclick="parcel_load(0.1)" href="#">50m</a></li>
+        <li><a class="dropdown-item" onclick="parcel_load(0.1)" href="#">100m</a></li>
+        <li><a class="dropdown-item" onclick="parcel_load(0.5)" href="#">500m</a></li>
+        <li><a class="dropdown-item" onclick="parcel_load(1)" href="#">1km</a></li>
+      </ul>
+    </div>
+
+    <!--
+    <a class="mt-2 btn btn-primary text-white" href="#" onclick="parcel_load()">
+    <i class="fas fa-passport"></i>
+    Charger le cadastre
+  </a> -->
+  <div class="input-group mt-2">
+    <a class="mt-2 btn btn-secondary text-white" href="#" onclick="parcel_broom()">
+      <i class="fas fa-broom"></i> Retirer les parcelles
+    </a>
+  </div>
+
+
+  <div>
+
+    <p class="mt-5">Les parcelles de  vos recherches et du cadastre apparaissent ci-dessous. </p>
+    <input class="m-3" type="text" id="ulfilter" />
+    <ul class="list-group" id="parcellesearchlist">
+    </ul>
+  </div>
+</div>
+
+
+</div>
+</div>
+
+<div id="mapid" class="sidebar-map">
+</div>
+<!-- " -->
+
+
+
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js" integrity="sha384-ZvpUoO/+PpLXR1lu4jmpXWu80pZlYUAfxl5NsBMWOEPSjUn/6Z/hRTt8+pR6L4N2" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+
+
+<script src="https://kit.fontawesome.com/6ea147b44a.js" crossorigin="anonymous"></script>
+<!-- <script src="https://cdn.jsdelivr.net/npm/leaflet-easybutton@2/src/easy-button.js"></script> -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-alpha3/dist/js/bootstrap.bundle.min.js" integrity="sha384-popRpmFF9JQgExhfw5tZT4I9/CI5e2QcuUZPOVXb1m7qUmeR2b50u+YFEYe1wgzy" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/vivus@latest/dist/vivus.min.js"></script>
+<script src="{{ url_for('static', filename='js/notiflix-2.6.0.min.js') }}"></script>
+<script src="{{ url_for('static', filename='js/leaflet-sidebar.js') }}"></script>
+<script src="{{ url_for('static', filename='js/util_refactor.js') }}"></script>
+
+<script>
+var needToConfirm = false;
+
+function somethingchanged() {
+  needToConfirm = true
+
+}
+var PlanLayerGroup = new L.FeatureGroup([])
+var SearchLayerGroup = new L.FeatureGroup([])
+
+
+var activelayer = undefined ;
+var parcels = {}
+
+var csrf_token = "{{ csrf_token() }}";
+
+$.ajaxSetup({
+  beforeSend: function(xhr, settings) {
+    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+      xhr.setRequestHeader("X-CSRFToken", csrf_token);
+    }
+  }
+});
+
+
+var parcellelist = new Set();
+var highlightlist = new Set();
+var contenance = 0.0 ;
+
+
+
+
+$('body').on('click', '[data-editable]', function(){
+  var $el = $(this);
+  var $input = $('<input/>').val( $el.text() );
+  $el.replaceWith( $input );
+  var save = function(){
+    var $p = $('<'+$el.prop('nodeName')+' class="'+$el.prop('className')+'" id="'+$el.prop('id')+'"  data-editable />').text( $input.val() );
+    if ($input.val() == "") {
+      Notiflix.Notify.Failure('Le titre du plan ne peut pas être vide !');
+      console.log("empty")
+      $input.one('blur', save).focus();
+    } else {
+      $input.replaceWith( $p );
+      $("#btn-save").prop('disabled',false)
+    }
+  };
+  $input.one('blur', save).focus();
+  $input.keyup(function(e){if(e.keyCode == 13){save()}})
+});
+
+
+var mymap = L.map('mapid', {   attributionControl: false, zoomControl: false});
+var sidebar = L.control.sidebar('sidebar', {position: 'right'}).addTo(mymap);
+L.Control.Watermark = L.Control.extend({
+  onAdd: function(map) {
+    var div = L.DomUtil.create('div');
+    div.innerHTML = '<object width="50" height="50" id="micon" type="image/svg+xml" data="{{ url_for('static', filename='icon/path.svg') }}"></object>'
+    return div;
+  },
+  onRemove: function(map) {
+    // Nothing to do here
+  }
+});
+
+L.control.watermark = function(opts) {
+  return new L.Control.Watermark(opts);
+}
+L.control.watermark({ position: 'topleft' }).addTo(mymap);
+L.control.attribution({position: 'bottomleft'}).addTo(mymap);
+
+
+L.control.zoom({
+  position:'bottomleft'
+}).addTo(mymap);
+
+
+function savemap(){
+  needToConfirm = false
+
+
+  plan.name = $("#maptitle").val()
+  plan.commune = $("#mapcommune").val()
+  plan.public_text = $("#public_text").val()
+  plan.private_text = $("#private_text").val()
+  plan.public = $("#mappublic").is(':checked')
+  plan.active = $("#mapactive").is(':checked')
+  plan.show_contact =   $("#mapshow_contact").is(':checked')
+
+
+  console.log(plan)
+  $.ajax({
+    type: "POST",
+    url: "{{ url_for('map_update')}}",
+    // The key needs to match your method's input parameter (case-sensitive).
+    data: JSON.stringify({ 'map' : plan  }),
+    contentType: "application/json; charset=utf-8",
+    dataType: "json",
+    success: function(data){
+
+      Notiflix.Notify.Success('Plan sauvegardé !');
+      $("#btn-save").prop('disabled',true)
+    },
+    error: function(errMsg) {
+      Notiflix.Notify.Failure('Echec de la sauvegarde');
+    }
+  });
+}
+
+
+
+var osmLayer = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q', { // LIGNE 20
+  tileSize: 512,
+  zoomOffset: -1,
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 20,
+  minZoom:1
+});
+var satellite = false;
+var mapBoxLayer = L.tileLayer('https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}@2x.jpg90?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q', { // LIGNE 20
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 20,
+  minZoom:1
+});
+
+
+mymap.addLayer(osmLayer);
+PlanLayerGroup.addTo(mymap)
+SearchLayerGroup.addTo(mymap)
+
+function toggleSatellite() {
+  if (satellite) {
+    mymap.removeLayer(mapBoxLayer)
+    mymap.addLayer(osmLayer)
+    satellite = false
+    $("#micon").attr("style","filter:invert(0%);")
+  } else {
+    mymap.removeLayer(osmLayer)
+    mymap.addLayer(mapBoxLayer)
+    satellite = true
+    $("#micon").attr("style","filter:invert(100%);")
+  }
+}
+
+function loadmap() {
+  $.ajax({
+    url: "{{ url_for('getmap', mapid = mapid  ) }}",
+    dataType: "json",
+    success: function(data){
+      plan = data.properties
+      plan["parcels"] = {}
+      // console.log( data.features)
+
+      storeGeoJSON(data).forEach(function(element) {
+        addToTheLayer(element, PlanLayerGroup, styleActive() )
+        parcels[element]._type = "MAP"
+
+        plan["parcels"][element] = parcels[element].properties
+
+
+        // $("#parcelletable tbody").append("<tr>\
+        //   <td>"+plan["parcels"][element].section+" "+plan["parcels"][element].numero+"</td> \
+        //   <td>"+contenance_format(plan["parcels"][element].contenance, 0, ',', '\u00A0')+	"\u00A0\u33A1"+"</td> \
+        //   <td>"+( plan["parcels"][element].private_text == null ? "" : plan["parcels"][element].private_text )+"</td> \
+        //   </tr>");
+
+        pushparceltoul($("#parcelleul"), element)
+
+        console.log(parcels[element])
+        parcels[element].layer.bindPopup(formatProperties(plan["parcels"][element]),{
+          keepInView: true,
+        }).openPopup();
+
+
+        contenance += parcels[element].properties.contenance ;
+
+        console.log(element)
+      })
+
+
+      mymap.fitBounds(PlanLayerGroup.getBounds());
+      $( "#maptitle" ).val( (plan["name"]== null) ? "Plan Sans Titre" : plan["name"])
+      $( "#mapcommune" ).val( (plan["commune"] == null) ? "?????" : plan["commune"])
+      $("#private_text").val(  plan["private_text"] )
+      $("#public_text").val(  plan["public_text"] )
+      $("#mapactive").prop('checked', plan["active"])
+      $("#mappublic").prop('checked', plan["public"])
+      $("#mapshow_contact").prop('checked', plan["show_contact"])
+
+
+      //   $("#parcelletable tbody").append("<tr>\
+      //   <td>"+feature.properties.section+" "+feature.properties.numero+"</td> \
+      //   <td>"+number_format(layer.feature.properties.contenance, 0, ',', '\u00A0')+	"\u00A0\u33A1"+"</td> \
+      //   <td>"+( feature.properties.private_text == null ? "" : feature.properties.private_text )+"</td> \
+      //   </tr>");
+      //   layer.bindPopup(formatProperties(feature.properties),{
+      //     keepInView: true,
+      //   }).openPopup();
+      // })
+
+    },
+    error: function(e) {
+      Notiflix.Report.Failure( 'Erreur de Plan', 'Ce plan ne semble pas disponible', 'Retour' );
+      var timer = setTimeout( function() {
+        window.location.replace("{{ url_for('map_list')}}")
+      },
+      3000);
+
+
+    }
+  });
+}
+
+
+
+loadmap()
+
+function parcel_remove(id) {
+
+  if (Object.keys(plan.parcels).length ==1) {
+    Notiflix.Notify.Failure('Il faut au moins une parcelle sur un plan !');
+    return
+  }
+  somethingchanged()
+
+
+  l = parcels[id].layer
+  PlanLayerGroup.removeLayer(parcels[id].layer)
+  parcels[id].layer.setStyle(leafstyle_notactive)
+
+  SearchLayerGroup.addLayer(parcels[id].layer)
+  parcels[id].layer.bindPopup(id+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="parcel_add_to_map(\''+id+'\')"><i class="far fa-plus-square"></i></a>').openPopup();;
+
+  parcels[id]._type = "SEARCH"
+  delete(plan.parcels[id])
+  // add to the ul list !!
+  parcels[id]._li.remove();
+  parcels[id]._li.appendTo($('#parcellesearchlist'))
+}
+
+function formatProperties(properties) {
+  ldiv = document.createElement("div")
+  $("<h4 />").html(properties.section+" "+properties.numero).appendTo(ldiv)
+  $("<p />").html("Commune : "+properties.commune).appendTo(ldiv)
+  $("<p />").html("Superficie : "+contenance_format(properties.contenance)).appendTo(ldiv)
+  $("<div class=\"form-floating\" />").html("<textarea class=\"form-control private_text_editor\"  placeholder=\"Vos notes\" id="+properties.id+">"+(properties.private_text == null ? "" : properties.private_text  )+"</textarea> \
+  <label for=\"floatingTextarea2\">Notes</label>").appendTo(ldiv)
+  $("<a class=\"mt-2 btn btn-danger text-white\" href=\"#\" onclick=\"parcel_remove('"+properties.id+"')\">  \
+  <i class=\"fa fa-trash-o fa-lg\"></i></a>").appendTo(ldiv)
+  return ldiv
+}
+
+
+
+mymap.on('popupopen', function(e){
+
+  $(".private_text_editor").change(function(e){
+    id = e.target.id
+    value = $("#"+id).val()
+    plan["parcels"][id]["private_text"] = value ;
+  });
+})
+
+
+mymap.on('popupclose', function(e){
+  toggleActive(activelayer)
+})
+
+$(function() {
+
+  $('#ulfilter').keyup(function(){
+
+    var searchText = $(this).val().toUpperCase();
+    console.log(searchText)
+
+    $('#parcellesearchlist').children().each(function(){
+
+      var currentLiText = $(this).text()
+      var  showCurrentLi = currentLiText.indexOf(searchText) != -1;
+      console.log( currentLiText.indexOf(searchText), showCurrentLi )
+      if (showCurrentLi) {
+        $(this).show()
+      } else {
+        $(this).hide()
+      }
+
+
+    });
+  });
+
+
+  $("#parcellesearch").change(function() {
+    req =  $( this ).val()
+    console.log(req)
+    ul = $('#parcellesearchlist')
+    // ul.empty()
+
+    $.ajax({
+      type: "POST",
+      url : " {{ url_for('parcellesearch')}}",
+      dataType : "json",
+      cache: false,
+      data : {
+        lng : mymap.getCenter()["lng"],
+        lat : mymap.getCenter()["lat"],
+        text : req,
+        size : 5
+      },
+      success : function(data) {
+        storeGeoJSON(data).forEach(function(element) {
+          parcels[element]._type = "SEARCH"
+          addToTheLayer(element,SearchLayerGroup)
+          pushparceltoul(ul,element)
+        })
+        mymap.fitBounds(SearchLayerGroup.getBounds());
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        console.log(textStatus + " " + errorThrown);
+      }
+    });
+
+
+  }
+);
+});
+
+function pushparceltoul(ul,element){
+  li = $("<li class=\"list-group-item justify-content-between align-items-center\" />")
+  li.html('<a onclick="centerTheView(\''+element+'\')" href="#">'+element+'</a><span class="badge bg-primary rounded-pill">'+contenance_format(parcels[element].properties.contenance)+'</span>')
+  parcels[element]._li = li
+  li.appendTo(ul)
+}
+
+function deleteFromTheMap(id) {
+
+  if (parcels[id].layer == null) {
+    mymap.removeLayer(parcels[id].layer)
+    parcels[id].layer = null ;
+  }
+}
+
+function addToTheLayer(id, layergroup, style = leafstyle_notactive) {
+  if (parcels[id].layer == null) {
+    parcels[id].layer =    L.geoJSON(parcels[id])
+    parcels[id].layer.bindPopup(id+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="parcel_add_to_map(\''+id+'\')"><i class="far fa-plus-square"></i></a>');
+    parcels[id].layer.setStyle(style)
+    parcels[id].layer.on('click', function()  { toggleActive(id) } );
+    // console.log(parcels[id].layer)
+    layergroup.addLayer(parcels[id].layer)
+    // console.log(parcels[id].layer)
+  }
+}
+
+function  centerTheView(id, style = leafstyle_notactive) {
+  if (parcels[id].layer != null) {
+    mymap.setView(parcels[id].layer.getBounds().getCenter(), mymap.getZoom() , { zoom: {
+      animate: true
+    }}
+  ) }
+  parcels[id].layer.fireEvent('click');
+}
+
+function storeGeoJSON(data) {
+  larray = []
+  data.features.forEach(function(element) {
+    if (!(element.properties.id in parcels)) {
+      parcels[element.properties.id] = { "type": "Feature",
+      "properties": element.properties,
+      "geometry": element.geometry,
+      "layer" : null
+    }
+    larray.push(element.id) ;
+  }
+})
+return larray
+}
+
+// delete list of parcels that are in the "draft" layer
+function parcel_broom() {
+  for (var key in parcels ) {
+    if (parcels[key]._type == "SEARCH") {
+      layer = parcels[key].layer
+      SearchLayerGroup.removeLayer(layer);
+      delete(parcels[key])
+    }
+  }
+  $('#parcellesearchlist').empty()
+}
+
+function toggleActive(id) {
+  console.log(id)
+  if (id == undefined) {
+    return
+  }
+  if (activelayer == undefined) {
+    activelayer = id
+    parcels[id].layer.setStyle(styleSelected())
+  } else if (activelayer == id) {
+    activelayer = undefined ;
+    switch(parcels[id]._type) {
+      case "MAP":
+      lstyle = styleActive()
+      break
+      case "SEARCH":
+      lstyle = leafstyle_notactive
+      break
+
+      default:
+      lstyle = leafstyle_notactive
+
+    }
+    parcels[id].layer.setStyle(lstyle) ;
+
+  }
+}
+
+function parcel_load(size = 0.1) {
+  Notiflix.Loading.Custom('Chargement ...');
+
+  lng = mymap.getCenter()["lng"]
+  lat = mymap.getCenter()["lat"]
+  ul = $('#parcellesearchlist')
+  $.ajax({
+    //URL de l'API
+    url: "/api/get-parcels-disk/"+lat+"/"+lng+"/"+size/111,
+    dataType: "json",
+    success: function(data){
+      Notiflix.Loading.Remove();
+      storeGeoJSON(data).forEach(function(element) {
+        parcels[element]._type = "SEARCH"
+        addToTheLayer(element,SearchLayerGroup)
+        pushparceltoul(ul,element)
+      })
+      mymap.fitBounds(SearchLayerGroup.getBounds());
+    } ,
+
+    //Méthode appelée lorsque le téléchargement a échoué
+    error: function() {
+      Notiflix.Loading.Remove();
+      alert("Erreur lors du téléchargement !");
+    }
+  });
+}
+
+function parcel_add_to_map(id) {
+  somethingchanged()
+  SearchLayerGroup.removeLayer(parcels[id].layer)
+  PlanLayerGroup.addLayer(parcels[id].layer)
+  parcels[id].layer.setStyle(styleActive())
+  parcels[id]._type = "MAP"
+  plan.parcels[id] = parcels[id].properties
+  plan.parcels[id].private_text = ""
+  parcels[id]._li.remove();
+  parcels[id]._li.appendTo($('#parcelleul'))
+
+  parcels[id].layer.bindPopup(formatProperties(plan["parcels"][id]),{
+    keepInView: true,
+  }).openPopup();
+
+}
+Notiflix.Loading.Init({customSvgUrl:'{{ url_for('static', filename='icon/path-vue.svg') }}',svgSize:'80px',});
+
+function locateuser() {
+  mymap.locate({setView: false});
+  Notiflix.Loading.Custom('Recherche de votre position ...');
+}
+var posMarker = undefined ;
+function onLocationFound(e) {
+  Notiflix.Loading.Remove();
+  var radius = e.accuracy;
+  if (posMarker) {
+    mymap.removeLayer(posMarker)
+  }
+  posMarker = L.circleMarker(e.latlng, { radius : radius})
+  posMarker.bindPopup('Vous êtes ici avec une précision de '+radius.toFixed(0)+' m.')
+  posMarker.addTo(mymap)
+  posMarker.bringToBack()
+
+
+  dist = e.latlng.distanceTo(mymap.getCenter()) / 1000
+  if (dist>1) {
+    Notiflix.Confirm.Show( 'Vous êtes loin !', 'Votre position est à '+(dist).toFixed(0)+' km des parcelles de ce plan. Souhaitez vous centrer la vue sur votre position ?', 'Oui', 'Non', function(){ // Yes button callback
+      mymap.panTo( e.latlng) }, function(){ // No button callback
+      } );
+    } else {
+      mymap.panTo( e.latlng)
+    }
+
+  }
+
+  mymap.on('locationfound', onLocationFound);
+  new Vivus('micon', { type : "oneByOne", duration: 50 }, function(){});
+
+  window.onbeforeunload = confirmExit;
+  function confirmExit()
+  {
+    if (needToConfirm) {
+      return "Vous avez des modifications non enregistrées"
+    }
+  }
+</script>
+</body>
+</html>

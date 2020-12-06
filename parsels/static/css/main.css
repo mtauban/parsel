@@ -1,0 +1,17 @@
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&display=swap');
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+font-family: 'Quicksand', sans-serif;
+  font-weight: normal;
+  font-style: normal;
+  color: var(--bs-gray-dark);
+  overflow-x: hidden;
+}
+
+.ui-autocomplete {
+     z-index: 9999 !important;
+}

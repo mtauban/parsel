@@ -1,0 +1,20 @@
+{% extends 'layout.html' %}
+
+{% block content %}
+
+
+{% include 'navbis.html' %}
+
+<div class="container-sm py-5">
+    <div class="row">
+      <h1>Compte utilisateur</h1>
+
+<p>
+  Compte : {{ current_user.email }}
+  <ul>
+    <li><a href="/change">Changer de mot de passe</a></li>
+  </ul>
+        <p>
+    </div>
+  </div>
+{% endblock %}
