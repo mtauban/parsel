@@ -426,7 +426,8 @@ function loadparcellesfromids(ids) {
 
     //Méthode appelée lorsque le téléchargement a échoué
     error: function() {
-      alert("Erreur lors du téléchargement !");
+      Notiflix.Notify.Warning('Parcelles introuvables');
+
     }
   });
 }
@@ -451,7 +452,7 @@ function loadparcelles(lat,lon) {
 
     //Méthode appelée lorsque le téléchargement a échoué
     error: function() {
-      alert("Erreur lors du téléchargement !");
+      Notiflix.Notify.Warning('Parcelles introuvables. La zone n\'est peut être pas couverte.');
     }
   });
 }
@@ -511,7 +512,7 @@ $(document).ready(function() {
         window.location.href = "/mapcreate/"+data.token
       },
       error: function(errMsg) {
-        alert(errMsg);
+        Notiflix.Notify.Error('Impossible de sauvegarder votre selection.');
       }
     });
   })
