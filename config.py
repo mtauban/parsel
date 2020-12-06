@@ -17,9 +17,9 @@ class Config:
     SECURITY_PASSWORD_SALT = environ.get("SECURITY_PASSWORD_SALT")
     SECURITY_SEND_REGISTER_EMAIL = False
     # Database
-    SQLALCHEMY_DATABASE_URI = environ.get('DATABASE_URI',"postgresql://userparcel:87wzofBVZw20HDM@127.0.0.1/userparcel")
+    SQLALCHEMY_DATABASE_URI = environ.get('DATABASE_URI')
 
-            
+
     SQLALCHEMY_ECHO = False
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
