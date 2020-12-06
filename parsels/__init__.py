@@ -32,24 +32,24 @@ db.init_app(app)
 from .models import User, Role, Plan, Parcel
 
 
-class UserModelView(ModelView):
-  column_display_pk = True
-  page_size = 20
-  can_view_details = True
-  can_export = True
-  def is_accessible(self):
-    return (current_user.is_active and
-            current_user.is_authenticated and current_user.has_role("admin"))
-  def _handle_view(self, name):
-    if not self.is_accessible():
-      return redirect(url_for('security.login'))
-
-admin.init_app(app)
-admin.add_view(UserModelView(User, db.session))
-admin.add_view(UserModelView(Role, db.session))
-admin.add_view(UserModelView(Plan, db.session))
-admin.add_view(UserModelView(Parcel, db.session))
-
+# class UserModelView(ModelView):
+#   column_display_pk = True
+#   page_size = 20
+#   can_view_details = True
+#   can_export = True
+#   def is_accessible(self):
+#     return (current_user.is_active and
+#             current_user.is_authenticated and current_user.has_role("admin"))
+#   def _handle_view(self, name):
+#     if not self.is_accessible():
+#       return redirect(url_for('security.login'))
+# 
+# admin.init_app(app)
+# admin.add_view(UserModelView(User, db.session))
+# admin.add_view(UserModelView(Role, db.session))
+# admin.add_view(UserModelView(Plan, db.session))
+# admin.add_view(UserModelView(Parcel, db.session))
+# 
 # Setup Flask-Security
 user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 security = Security(app, user_datastore)
