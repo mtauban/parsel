@@ -8,6 +8,13 @@
 
 {% include 'navbis.html' %}
 
+<div class="p-1">
+<p>
+    Si vous disposez pas encore d'un un compte,
+    <a href="{{ url_for_security('register') }}{% if 'next' in request.args %}?next={{ request.args.next|urlencode }}{% endif %}">c'est par ici&nbsp;!</a>
+</p>
+</div>
+
 
 <div class="d-flex flex-column py-5 justify-content-center align-items-center">
 
