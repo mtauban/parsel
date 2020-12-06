@@ -133,6 +133,7 @@
           <h1 class="sidebar-header">Liste<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h1>
           <div class="mt-3">
             <p class="mt-5">Les parcelles de  votre plan apparaissent ci-dessous. </p>
+            <p class="mt-5">Superficie : <span id="spanmapcontenance">0</span>
             <ul class="list-group" id="parcelleul">
             </ul></div>
 
@@ -391,7 +392,7 @@ function loadmap() {
 
 
         contenance += parcels[element].properties.contenance ;
-
+        $("#spanmapcontenance").text(contenance_format(contenance))
         console.log(element)
       })
 
@@ -433,6 +434,8 @@ function loadmap() {
 
 loadmap()
 
+
+
 function parcel_remove(id) {
 
   if (Object.keys(plan.parcels).length ==1) {
@@ -441,6 +444,8 @@ function parcel_remove(id) {
   }
   somethingchanged()
 
+  contenance -= parcels[id].properties.contenance
+  $("#spanmapcontenance").text(contenance_format(contenance))
 
   l = parcels[id].layer
   PlanLayerGroup.removeLayer(parcels[id].layer)
@@ -455,6 +460,8 @@ function parcel_remove(id) {
   parcels[id]._li.remove();
   parcels[id]._li.appendTo($('#parcellesearchlist'))
 }
+
+
 
 function formatProperties(properties) {
   ldiv = document.createElement("div")
@@ -671,6 +678,8 @@ function parcel_add_to_map(id) {
   parcels[id]._li.remove();
   parcels[id]._li.appendTo($('#parcelleul'))
 
+  contenance += parcels[id].properties.contenance ;
+  $("#spanmapcontenance").text(contenance_format(contenance))
   parcels[id].layer.bindPopup(formatProperties(plan["parcels"][id]),{
     keepInView: true,
   }).openPopup();
