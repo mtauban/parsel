@@ -686,37 +686,52 @@ function parcel_add_to_map(id) {
   }).openPopup();
 
 }
-Notiflix.Loading.Init({customSvgUrl:'{{ url_for('static', filename='icon/path-vue.svg') }}',svgSize:'80px',});
 
-function locateuser() {
-  mymap.locate({setView: false});
-  Notiflix.Loading.Custom('Recherche de votre position ...');
-}
-var posMarker = undefined ;
-function onLocationFound(e) {
-  Notiflix.Loading.Remove();
-  var radius = e.accuracy;
-  if (posMarker) {
-    mymap.removeLayer(posMarker)
+
+
+
+  Notiflix.Loading.Init({customSvgUrl:'{{ url_for('static', filename='icon/path-vue.svg') }}',svgSize:'80px',});
+
+  function locateuser() {
+    mymap.locate({setView: false});
+    Notiflix.Loading.Custom('Recherche de votre position ...');
   }
-  posMarker = L.circleMarker(e.latlng, { radius : radius})
-  posMarker.bindPopup('Vous êtes ici avec une précision de '+radius.toFixed(0)+' m.')
-  posMarker.addTo(mymap)
-  posMarker.bringToBack()
+
+  var posMarker = undefined ;
 
 
-  dist = e.latlng.distanceTo(mymap.getCenter()) / 1000
-  if (dist>1) {
-    Notiflix.Confirm.Show( 'Vous êtes loin !', 'Votre position est à '+(dist).toFixed(0)+' km des parcelles de ce plan. Souhaitez vous centrer la vue sur votre position ?', 'Oui', 'Non', function(){ // Yes button callback
-      mymap.panTo( e.latlng) }, function(){ // No button callback
-      } );
-    } else {
-      mymap.panTo( e.latlng)
+  function onLocationFound(e) {
+    Notiflix.Loading.Remove();
+    var radius = e.accuracy;
+
+
+
+    dist = e.latlng.distanceTo(mymap.getCenter()) / 1000
+    zoomLevel = mymap.getZoom()
+    if (zoomLevel<15) {
+      zoomLevel = 15
     }
 
-  }
+    if (dist>1) {
+      Notiflix.Confirm.Show( 'Vous êtes loin !', 'Votre position est à '+(dist).toFixed(0)+' km des parcelles de ce plan. Souhaitez vous centrer la vue sur votre position ?', 'Oui', 'Non', function(){ // Yes button callback
+        mymap.setView( e.latlng, zoomLevel) }, function(){ // No button callback
+        } );
+      } else {
+        mymap.setView( e.latlng, zoomLevel)
+      }
 
-  mymap.on('locationfound', onLocationFound);
+      if (posMarker) {
+        mymap.removeLayer(posMarker)
+      }
+      posMarker = L.circle(e.latlng, { radius : radius})
+      posMarker.bindPopup('Vous êtes ici avec une précision de '+radius.toFixed(0)+' m.')
+      posMarker.addTo(mymap)
+      posMarker.bringToBack()
+
+    }
+
+    mymap.on('locationfound', onLocationFound);
+
   new Vivus('micon', { type : "oneByOne", duration: 50 }, function(){});
 
   window.onbeforeunload = confirmExit;
