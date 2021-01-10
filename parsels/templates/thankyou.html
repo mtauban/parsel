@@ -1,0 +1,37 @@
+{% extends 'layout.html' %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+crossorigin=""/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/notiflix-2.6.0.min.css') }}" />
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/ux.css') }}">
+{% endblock %}
+
+
+
+
+
+{% block content %}
+
+{% include 'navbis.html' %}
+
+<div class="container posts-container">
+
+  <h1 class="mt-2">Vous venez de soutenir Parcelle.app</h1>
+            <div class="p-1">
+              Votre soutient va permettre la mise en place de nouvelles fonctionnalités
+              ainsi que l'amélioration de la solution d'hébergement afin de proposer un
+              service plus rapide et plus stable.
+            </div>
+            <div class="p-1">
+              Votre participation est également une marque de reconnaissance et un
+              encouragement à investir plus d'énergie dans cette activité qui démarre.
+            </div>
+
+              <h1 class="mt-2">Merci !!</h1>
+</div>
+
+
+
+{% endblock %}

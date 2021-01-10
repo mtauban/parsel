@@ -26,6 +26,14 @@ def goo():
     return  render_template('go.html')
 
 
+@app.route('/donate')
+def donate():
+    return  render_template('donate.html')
+
+@app.route('/thankyou')
+def thankyou():
+    return  render_template('thankyou.html')
+
 
 
 @app.route('/mapedit', methods=['POST'])
