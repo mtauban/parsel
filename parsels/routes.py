@@ -276,9 +276,10 @@ def getmap(mapid):
     plan =  db.session.query((Plan)).filter(Plan.id == mapid).first();
     if (plan == None):
         abort(404, description="Resource not found")
-    if ((not(current_user.is_authenticated)) and  (not(plan.public and plan.active))):
-        abort(403, description="You need to login to have access")
-    elif ((plan.user_id != current_user.id) and  (not(plan.public and plan.active)))   :
+    if (not(current_user.is_authenticated)):
+        if (not(plan.public and plan.active)):
+            abort(403, description="You need to login to have access")
+    elif ((plan.user_id != current_user.id) and (not(plan.public and plan.active)))   :
         abort(404, description="You do not have the right to get this map")
 
     # response = jsonify({"type": "FeatureCollection", "features": [ {'type': 'Feature', 'properties': {},   'geometry' : shapely.geometry.mapping(to_shape(ass.parcel.geometry)) } for ass in (plan.parcels)]})

@@ -13,11 +13,14 @@ crossorigin=""/>
 
 {% include 'navbis.html' %}
 
-<div class="container square py-5 w-100">
+<div class="container-sm posts-container">
+  <h1 class="mt-5" id="maptitle"></h1>
+</div>
+<div class="container py-5 w-100 posts-container">
     <div id="mapid" class="ddmapview"></div>
 </div>
 
-<div class="container-sm">
+<div class="container-sm posts-container">
   <h5 class="mt-5">Description</h5>
   <p>Contact : <span id="mapuseremail"></span></p>
   <p>Superficie totale : <span id="lbl-contenance">0</span> &#13217;</p>
@@ -68,7 +71,7 @@ function style(feature) {
     weight: 5,
     opacity: 1,
     color: 'var(--bs-teal)',
-    fillOpacity: 0.7
+    fillOpacity: 0.1
   };
 }
   var contenance = 0 ;
@@ -116,7 +119,7 @@ function style(feature) {
     var layer = L.geoJSON(geojson, {
       style : style,
       onEachFeature: function (feature, layer) {
-        layer.bindTooltip(feature.properties.numero, {permanent: true, direction : 'center', opacity: 0.7, className: 'maplabel'});
+        layer.bindTooltip(feature.properties.section+' '+feature.properties.numero, {permanent: true, direction : 'center', opacity: 0.7, className: 'maplabel'});
       //  layer.setIcon(L.divIcon({className: 'maplabel'}));
         layer.on({
           click: function(e){ whenClicked(e.target) }
