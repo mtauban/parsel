@@ -4,7 +4,7 @@ from flask_security import current_user, auth_required
 
 from geoalchemy2.shape import to_shape
 import shapely
-
+import json
 from . import app, db
 from .models import Parcel, Plan, Association, Token
 from geoalchemy2.functions import ST_DistanceSphere, ST_MakePoint, ST_Centroid, ST_DWithin, ST_SetSRID, ST_AsGeoJSON, ST_Contains, ST_MakeEnvelope
@@ -328,6 +328,35 @@ def getparcels(lat, lon, delta=0.005):
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
 
+
+
+#ign support
+@app.route('/api/ign/get-parcels/<lat>/<lon>/<delta>')
+def ign_getparcels(lat, lon, delta=0.002):
+
+
+    delta = float(delta)
+    lat = float(lat)
+    lon = float(lon)
+    headers = {
+       'User-Agent': app.config['IGN_USER_AGENT']
+     }
+    box = (lon-delta,lat-delta,lon+delta,lat+delta)
+    response = app.wfs11.getfeature(typename='CADASTRALPARCELS.PARCELLAIRE_EXPRESS:parcelle', bbox=box,outputFormat='application/json')
+
+    t = (response.read())
+    data = json.loads(t)
+
+    for feature in data["features"]:
+        feature["id"] = feature["properties"]["idu"]
+        feature["properties"]["contenance"] = 0.0
+        feature["properties"]["commune"] = feature["properties"].pop('code_insee')
+        feature["properties"]["prefixe"] = feature["properties"].pop('com_abs')
+        feature["properties"]["id"] = feature["properties"].pop('idu')
+
+
+    return jsonify(data)
+
 @app.route('/api/get-parcels-from-token/<uid>')
 def getparcelfromtoken(uid):
     tok = Token.query.get(uid)
@@ -339,6 +368,9 @@ def getparcelfromtoken(uid):
     # response =  jsonify( { "type":"FeatureCollection","features": [v.toGeo() for v in a]})# Returns HTTP Response with {"hello": "world"}
     response.headers.add('Access-Control-Allow-Origin', '*')
     return response
+
+
+
 
 
 @app.route('/api/get-parcels/<ids>')

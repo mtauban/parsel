@@ -447,7 +447,7 @@ function loadparcelles(lat,lon) {
   $.ajax({
     //URL de l'API
     // url: "{{ url_for('getparcels', lat = "x", lon = "y",delta = 0.005) }}".replace("/x", "/"+(lat)).replace("/y", "/"+(lon)),
-    url: "/api/get-parcels-disk/"+lat+"/"+lon+"/"+size/111,
+    url: "/api/ign/get-parcels/"+lat+"/"+lon+"/"+size/111,
     // "{{ url_for('getparcels', lat = lat , lon= lon , delta = 0.005) }}",
     //  url: "{{ url_for('getparcelfromids', ids = "072740000B0402:072740000B0401:072740000B1299:072740000B1288:072740000B1287:072740000B1297:072740000B1296:072740000B0399:072740000B0398:072740000B1295:072740000B1289:072740000B0424:072740000B0421:072740000B1285:072740000B1284:072740000B0396:072740000B9396:072740000B0397:072740000B1292:072740000B1291:072740000B1290:072740000B1387:072740000B1301:072740000B1388:072740000B1239:072740000B1238" ) }}",
 

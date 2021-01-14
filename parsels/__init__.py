@@ -7,6 +7,7 @@ from flask_admin import Admin
 from flask_admin.contrib.sqla import ModelView
 from flask_security import current_user
 
+from owslib.wfs import WebFeatureService
 
 
 from werkzeug.routing import FloatConverter as BaseFloatConverter
@@ -32,6 +33,14 @@ db.init_app(app)
 from .models import User, Role, Plan, Parcel
 
 
+
+# ign wfs11
+ign_apikey = "7tbcsy3xj9ymeoi4mjdlyayo"
+# apikey = "beta"
+app.wfs11 = WebFeatureService(url='https://wxs.ign.fr/'+ign_apikey+'/geoportail/wfs', version='1.1.0', headers={ 'User-Agent': 'parcelle-recs' })
+
+
+
 # class UserModelView(ModelView):
 #   column_display_pk = True
 #   page_size = 20
@@ -43,13 +52,13 @@ from .models import User, Role, Plan, Parcel
 #   def _handle_view(self, name):
 #     if not self.is_accessible():
 #       return redirect(url_for('security.login'))
-# 
+#
 # admin.init_app(app)
 # admin.add_view(UserModelView(User, db.session))
 # admin.add_view(UserModelView(Role, db.session))
 # admin.add_view(UserModelView(Plan, db.session))
 # admin.add_view(UserModelView(Parcel, db.session))
-# 
+#
 # Setup Flask-Security
 user_datastore = SQLAlchemyUserDatastore(db, User, Role)
 security = Security(app, user_datastore)

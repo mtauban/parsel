@@ -38,3 +38,6 @@ class Config:
     MAIL_USERNAME = 'contact@parcelle.app'
     MAIL_PASSWORD = 'vvA8X2wG3HZBh'
     MAIL_DEFAULT_SENDER = 'no-reply@parcelle.app'
+
+    IGN_API_KEY = "7tbcsy3xj9ymeoi4mjdlyayo"
+    IGN_USER_AGENT = "parcelle-recs"
