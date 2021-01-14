@@ -1,0 +1,53 @@
+{% extends 'layout.html' %}
+
+{% block stylesheets %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+crossorigin=""/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/notiflix-2.6.0.min.css') }}" />
+<link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/ux.css') }}">
+{% endblock %}
+
+
+
+
+
+{% block content %}
+
+{% include 'navbis.html' %}
+
+
+<div class="container posts-container">
+
+      <h1 class="mt-2">Soutenir Parcelle.app</h1>
+      <div class="py-2">
+        Nous souhaitons faciliter la vie des particuliers vendeurs et des agents
+        immobiliers en rendant encore plus accessibles les données cadastrales.
+      </div>
+      <div class="py-2">
+        Cela demande du temps pour rechercher et développer les fonctionnalités
+        le plus interessantes, mais aussi de l'argent pour permettre l'hebergement
+        de Parcelle.app, l'enregistrement du domaine, et la constitution de la structure.
+      </div>
+      <div class="py-2">
+        Vous pouvez soutenir notre initative en faisant un don.
+      </div>
+      <div class="py-2">
+        Les sommes récoltées permettront la mise en place de nouvelle fonctionnalités, la couverture de plus de zones géographiques,
+        ainsi que la migration vers un hebergement plus performant pour une meilleur réactivité de la plateforme.
+      </div>
+      <div class="py-5 text-center">
+<form action="https://www.paypal.com/donate" method="post" target="_top">
+<input type="hidden" name="hosted_button_id" value="DNNW5XPGWHEJ4" />
+<input type="image" src="https://www.paypalobjects.com/fr_FR/FR/i/btn/btn_donateCC_LG.gif" border="0" name="submit" title="PayPal - The safer, easier way to pay online!" alt="Donate with PayPal button" />
+<img alt="" border="0" src="https://www.paypal.com/fr_FR/i/scr/pixel.gif" width="1" height="1" />
+</form>
+      </div>
+      <div class="py-2">
+        Les dons à Parcelle.app ne permettent pas de déduction fiscale. 
+      </div>
+</div>
+
+
+
+{% endblock %}
