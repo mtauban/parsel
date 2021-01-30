@@ -144,6 +144,12 @@ var lon = 4.835659 ;
 var marker = undefined
 
 
+{% if current_user.is_authenticated %}
+firstTime = false
+{% endif %}
+
+
+
 var confirm = false
 Notiflix.Notify.Init({plainText:false})
 // Notiflix.Block.Standard('#mapid', "<span>Chargement...</span>");
