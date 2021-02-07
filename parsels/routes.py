@@ -9,12 +9,29 @@ from . import app, db
 from .models import Parcel, Plan, Association, Token
 from geoalchemy2.functions import ST_DistanceSphere, ST_MakePoint, ST_Centroid, ST_DWithin, ST_SetSRID, ST_AsGeoJSON, ST_Contains, ST_MakeEnvelope
 
+import pyproj
+import shapely.ops as ops
+from shapely.geometry import shape, GeometryCollection
+
+
+from area import area
+
+from functools import partial
+
+
 import requests
 
 @app.route('/')
+def entrypoint():
+    if ((current_user.is_authenticated)):
+        return redirect(url_for('map_list'))
+    else:
+        return redirect(url_for('home'))
+
+
+@app.route('/home')
 def home():
     return  render_template('home.html')
-
 
 @app.route('/more')
 def more():
@@ -338,33 +355,82 @@ def getparcels(lat, lon, delta=0.005):
     return response
 
 
-
-#ign support
-@app.route('/api/ign/get-parcels/<lat>/<lon>/<delta>')
-def ign_getparcels(lat, lon, delta=0.002):
-
-
-    delta = float(delta)
-    lat = float(lat)
-    lon = float(lon)
-    headers = {
-       'User-Agent': app.config['IGN_USER_AGENT']
-     }
-    box = (lon-delta,lat-delta,lon+delta,lat+delta)
-    response = app.wfs11.getfeature(typename='CADASTRALPARCELS.PARCELLAIRE_EXPRESS:parcelle', bbox=box,outputFormat='application/json')
-
-    t = (response.read())
-    data = json.loads(t)
-
+def ign_posttreatment(data):
     for feature in data["features"]:
-        feature["id"] = feature["properties"]["idu"]
-        feature["properties"]["contenance"] = 0.0
+        feature["id"] = feature["id"].split(".")[1] # feature["properties"]["idu"]
+        # this part assumes that the id is composed of "parcelle." + the actual math monkey id.
+        feature["properties"]["contenance"] = area(feature["geometry"])
         feature["properties"]["commune"] = feature["properties"].pop('code_insee')
         feature["properties"]["prefixe"] = feature["properties"].pop('com_abs')
         feature["properties"]["id"] = feature["properties"].pop('idu')
+    return data
 
 
+#ign support for bounding box
+@app.route('/api/ign/get-parcels-boundingbox/<float:lad>/<float:lod>/<float:lam>/<float:lom>')
+def ign_getparcels_boundingbox(lod,lad,lom,lam):
+
+    headers = {
+       'User-Agent': app.config['IGN_USER_AGENT']
+     }
+
+    if (lod>lom):
+        a = lod
+        lod = lom
+        lom = a
+
+    if (lad>lam):
+        a = lad
+        lad = lam
+        lam = a
+
+    box = (lod,lad,lom,lam)
+    mf = 500
+    featuresLimit = mf # we do not provide more than mf features !
+    totalResults = mf
+    loadedResults = 0
+    data = None
+    while ((loadedResults<totalResults) and (loadedResults<featuresLimit)):
+
+        response = app.wfs11.getfeature(typename='CADASTRALPARCELS.PARCELLAIRE_EXPRESS:parcelle',
+                                bbox=box,outputFormat='application/json',
+                                maxfeatures=mf,
+                                startindex=loadedResults)
+        t = (response.read())
+        a = json.loads(t)
+
+        #print(json.dumps(a))
+        if (loadedResults == 0):
+            totalResults = a["totalFeatures"]
+            data = a
+        else:
+            print(a)
+            data["features"] = data["features"] + a["features"]
+            data["numberReturned"] += a["numberReturned"]
+
+        loadedResults += a["numberReturned"]
+        #print(t)
+    #print(totalResults,loadedResults)
+
+    data = ign_posttreatment(data)
     return jsonify(data)
+
+
+
+@app.route('/api/ign/get-parcels/<ids>')
+def ign_getparcelfromids(ids):
+    ll = ids.split(':')
+    #@TODO: we should check that the list contains only ids !!!
+    response = app.wfs11.getfeature(typename='CADASTRALPARCELS.PARCELLAIRE_EXPRESS:parcelle',
+                                outputFormat='application/json',
+                                featureid=ll)
+    t = (response.read())
+    data = json.loads(t)
+    data = ign_posttreatment(data)
+    return jsonify(data)
+
+
+
 
 @app.route('/api/get-parcels-from-token/<uid>')
 def getparcelfromtoken(uid):

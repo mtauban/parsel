@@ -20,36 +20,6 @@
 </head>
 <body>
 
-
-  <!-- <div  class="navbar navbar-inverse navbar-fixed-top"  >
-    <div class="h5 my-0 mr-md-auto fw-normal flex-grow-1 align-middle d-flex align-items-center">
-      <div>
-        <a class="navbar-brand text-dark p-0"  href="{{ url_for('home') }}">
-          <object width="42" height="42" id="micon" type="image/svg+xml" data="{{ url_for('static', filename='icon/path.svg') }}"></object>
-        </a>
-      </div>
-      <div>
-        <a class="btn btn-dark" href="#"  id="btn-togglesat" onclick="toggleSatellite()"  role="button"><i class="fas fa-satellite"></i></a>
-        <a class="btn btn-dark" data-toggle="collapse" id="btn-forinfid" href="#infid" role="button" aria-expanded="false" aria-controls="infid">
-          <i class="fas fa-list"></i>
-        </a>
-        <button id="btn-create" type="button" class="btn btn-dark" disabled><i class="far fa-save"></i></button>
-
-      </div>
-      <div class="input-group input-group-sm ml-2 w-25">
-        <input id="addr" class="form-control" type="text" placeholder="Rechercher" aria-label="Rechercher">
-      </div>
-    </div>
-
-    <div>
-      <a href="{{ url_for('map_list')}}" class="btn btn-dark mr-3"  type="button">
-        <i class="fas fa-user-circle"></i>
-      </a>
-    </div>
-
-
-  </div> -->
-
   <div class="navbar navbar-inverse navbar-fixed-top shadow-sm">
       <div class="container-fluid">
 
@@ -59,6 +29,9 @@
 
 
         <a class="btn btn-dark mr-1" href="#"  id="btn-togglesat" onclick="toggleSatellite()"  role="button"><i class="fas fa-layer-group"></i></a>
+        <a class="btn btn-dark mr-1" href="#"  id="btn-togglesat" onclick="loadfrombbox()"  role="button"><i class="fas fa-draw-polygon"></i></a>
+        <a class="btn btn-dark mr-1" href="#"  id="btn-togglesat" onclick="loadfrombbox()"  role="button"><i class="fas fa-building"></i></a>
+
         <a class="btn btn-dark mr-2" data-toggle="collapse" id="btn-forinfid" href="#infid" role="button" aria-expanded="false" aria-controls="infid">
           <i class="fas fa-list"></i>
         </a>
@@ -90,11 +63,6 @@
       <p style="padding:1rem">Superficie totale : <span id="lbl-contenance">0</span>&nbsp;&#13217;</p>
       <ul id="parcellist" class="list-group">
       </ul>
-
-      <div class="form-check form-switch">
-        <input class="form-check-input" type="checkbox" id="chk-autoload" checked >
-        <label class="form-check-label" for="chk-autoload" >Charger les Parcelles en se déplaçant</label>
-      </div>
 
       <p style="padding:1rem"> <a href="https://fr.surveymonkey.com/r/3CVSLNW">Une remarque ou une demande ? C'est par ici !</a></p>
 
@@ -149,6 +117,8 @@ Notiflix.Notify.Init({plainText:false})
 // Notiflix.Block.Standard('#mapid', "<span>Chargement...</span>");
 
 
+
+  Notiflix.Loading.Init({customSvgUrl:'{{ url_for('static', filename='icon/path-vue.svg') }}',svgSize:'80px',});
 
 
 
@@ -205,7 +175,6 @@ if (ids[0] == "") {
 
 var contenance = 0 ;
 
-var flagautoload = true ;
 var flaglock = false ;
 const parcellelist = new Set();
 const highlightlist = new Set();
@@ -215,14 +184,8 @@ var mymap = L.map('mapid', {
 }).setView([lat,lon], zoomLevel);
 
 mymap.on("moveend", function () {
-  if (!(flagautoload)) {
-    return false
-  }
-  window.history.replaceState('', '', "/map/"+(mymap.getCenter().lat)+"/"+(mymap.getCenter().lng)+"/"+Array.from(highlightlist).join(":")) ;
 
-  if ((flagautoload) && (mymap.getZoom()>=14)) {
-    loadparcelles((mymap.getCenter().lat),(mymap.getCenter().lng));
-  }
+  window.history.replaceState('', '', "/map/"+(mymap.getCenter().lat)+"/"+(mymap.getCenter().lng)+"/"+Array.from(highlightlist).join(":")) ;
 
 });
 // var osmLayer = L.tileLayer('https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.jpg90?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q', { // LIGNE 20
@@ -261,6 +224,16 @@ function toggleSatellite() {
     satellite = true
   //  $("#micon").attr("style","filter:invert(100%);")
   }
+}
+
+function loadfrombbox(){
+  if (mymap.getZoom()<16) {
+      Notiflix.Notify.Failure('La zone demandée est trop vaste et comporte un nombre trop important de parcelles.');
+
+    console.log('too far to ask ign')
+    return
+  }
+  loadparcelles(mymap.getBounds())
 }
 
 
@@ -419,17 +392,21 @@ function dealwithgeoson(geojson, mymap, fit = false) {
 
 
 function loadparcellesfromids(ids) {
+    Notiflix.Loading.Custom('Chargement ...');
   $.ajax({
     //URL de l'API
     //url: "{{ url_for('getparcels', lat = "x", lon = "y",delta = 0.005) }}".replace("/x", "/"+(lat)).replace("/y", "/"+(lon)),
     // "{{ url_for('getparcels', lat = lat , lon= lon , delta = 0.005) }}",
-    url: "{{ url_for('getparcelfromids', ids = 'ids'  ) }}".replace('/ids', "/"+ids.join(":")),
+    url: "/api/ign/get-parcels/"+ids.join(":"),
 
     //Type de données
     dataType: "json",
 
     //Méthode appelée lorsque le téléchargement a fonctionné
-    success: function(data){ dealwithgeoson(data,mymap)},
+    success: function(data){
+      Notiflix.Loading.Remove();
+      dealwithgeoson(data,mymap)
+    },
 
     //Méthode appelée lorsque le téléchargement a échoué
     error: function() {
@@ -442,20 +419,22 @@ function loadparcellesfromids(ids) {
 var zoomLeveAndDistance =  [0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,1.50,1.25,1.00,0.95,0.80,0.75,0.70,0.60,0.50,0.40]
 
 
-function loadparcelles(lat,lon) {
-  size = zoomLeveAndDistance[mymap.getZoom()]
+function loadparcelles(bbox) {
+
+  Notiflix.Loading.Custom('Chargement ...');
+
   $.ajax({
     //URL de l'API
-    // url: "{{ url_for('getparcels', lat = "x", lon = "y",delta = 0.005) }}".replace("/x", "/"+(lat)).replace("/y", "/"+(lon)),
-    url: "/api/ign/get-parcels/"+lat+"/"+lon+"/"+size/111,
-    // "{{ url_for('getparcels', lat = lat , lon= lon , delta = 0.005) }}",
-    //  url: "{{ url_for('getparcelfromids', ids = "072740000B0402:072740000B0401:072740000B1299:072740000B1288:072740000B1287:072740000B1297:072740000B1296:072740000B0399:072740000B0398:072740000B1295:072740000B1289:072740000B0424:072740000B0421:072740000B1285:072740000B1284:072740000B0396:072740000B9396:072740000B0397:072740000B1292:072740000B1291:072740000B1290:072740000B1387:072740000B1301:072740000B1388:072740000B1239:072740000B1238" ) }}",
 
+    url: "/api/ign/get-parcels-boundingbox/"+bbox._southWest.lat+"/"+bbox._southWest.lng+"/"+bbox._northEast.lat+"/"+bbox._northEast.lng ,
     //Type de données
     dataType: "json",
 
     //Méthode appelée lorsque le téléchargement a fonctionné
-    success: function(data){ dealwithgeoson(data,mymap) ; },
+    success: function(data){
+      Notiflix.Loading.Remove();
+
+      dealwithgeoson(data,mymap) ; },
 
     //Méthode appelée lorsque le téléchargement a échoué
     error: function() {
@@ -476,17 +455,9 @@ L.control.attribution({
 
 if (ids.length>0) {
   loadparcellesfromids(ids)
-  $('#chk-autoload').prop('checked', false);
-  flagautoload=false
   //  $('#chk-lock').prop('checked', true);
   //  flaglock=true
   // ids = []
-} else {
-  if (mymap.getZoom()>14) {
-    loadparcelles(lat,lon);
-  } else {
-    Notiflix.Block.Remove('#mapid');
-  }
 }
 
 
@@ -524,30 +495,23 @@ $(document).ready(function() {
     });
   })
   //
-  // $("#btn-cleanmap").click(function() { cleanmap(mymap)}) ;
 
-  $('#chk-autoload').change(function() {
-    flagautoload = (this.checked)  ;
-  });
-  // $('#chk-lock').change(function() {
-  //   flaglock = (this.checked)  ;
-  // });
 });
 
 var searchresults = {}
 
 $(function() {
 
-  if (firstTime) {
-    Notiflix.Report.Merge({messageMaxLength:600,});
-     Notiflix.Report.Info( 'Editeur de plan Parcelle.app',
-     "Bienvenue sur l'éditeur de Parcelle.<br /><br /> \
-      Les parcelles se chargeront dès que vous serez suffisement proche dans les zones couvertes.<br /> \
-      Retrouvez la liste des parcelles selectionnées avec le bouton  <i class=\"btn btn-outline-dark fas fa-list\"></i>. <br /> \
-      Accedez à plus d'options en enregistrant le plan : <i class=\"btn btn-outline-dark fas fa-save\"></i>. <br /> \
-      ",
-     'C\'est parti !!' );
-  }
+  // if (firstTime) {
+  //   Notiflix.Report.Merge({messageMaxLength:600,});
+  //    Notiflix.Report.Info( 'Editeur de plan Parcelle.app',
+  //    "Bienvenue sur l'éditeur de Parcelle.<br /><br /> \
+  //     Les parcelles se chargeront dès que vous serez suffisement proche dans les zones couvertes.<br /> \
+  //     Retrouvez la liste des parcelles selectionnées avec le bouton  <i class=\"btn btn-outline-dark fas fa-list\"></i>. <br /> \
+  //     Accedez à plus d'options en enregistrant le plan : <i class=\"btn btn-outline-dark fas fa-save\"></i>. <br /> \
+  //     ",
+  //    'C\'est parti !!' );
+  // }
 
   $("#addr").autocomplete({
     source: function(request, response) {
@@ -611,8 +575,6 @@ var zoombytype = {
   'municipality' : 13
 }
 function loadmarkerandcenter(geojson, defaultzoom = 14) {
-  var state = flagautoload ;
-  flagautoload = false
   if (marker != undefined) {
     mymap.removeLayer(marker)
   }
@@ -629,7 +591,6 @@ function loadmarkerandcenter(geojson, defaultzoom = 14) {
     mymap.flyTo(marker.getBounds().getCenter(), zoomLevel)
     marker.addTo(mymap)
 
-    flagautoload = state
   }
 
 
