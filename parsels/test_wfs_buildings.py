@@ -2,16 +2,12 @@ from owslib.wfs import WebFeatureService
 import json
 
 
-ign_apikey = "inspire" # "7tbcsy3xj9ymeoi4mjdlyayo"
+ign_apikey = "7tbcsy3xj9ymeoi4mjdlyayo"
 # apikey = "beta"
 
-#   wfs11 = WebFeatureService(url='https://wxs.ign.fr/'+ign_apikey+'/geoportail/wfs', version='2.0.0', headers={ 'User-Agent': 'parcelle-recs' })
-# https://wxs.ign.fr/inspire/geoportail/wfs
 wfs11 = WebFeatureService(url='https://wxs.ign.fr/essentiels/geoportail/wfs', version='2.0.0')
 
-
 print('ok')
-
 print(wfs11.identification.title)
 print([operation.name for operation in wfs11.operations])
 print([storedquery.id for storedquery in wfs11.storedqueries])
@@ -28,12 +24,11 @@ loadedResults = 0
 globalfeatures = None
 while (loadedResults<totalResults):
 
-    response = wfs11.getfeature(typename='CADASTRALPARCELS.PARCELLAIRE_EXPRESS:parcelle',
+    response = wfs11.getfeature(typename='BDTOPO_V3:batiment',
                             bbox=(4.8363447189331055,45.75274517163593,4.8415718623437,45.75283716884888),outputFormat='application/json',
                             maxfeatures=mf,
                             startindex=loadedResults)
     t = (response.read())
-    print(t)
     a = json.loads(t)
 
     #print(json.dumps(a))
@@ -45,7 +40,7 @@ while (loadedResults<totalResults):
         globalfeatures["features"] = globalfeatures["features"] + a["features"]
 
     loadedResults += a["numberReturned"]
-    #print(t)
+    print(t)
 print(totalResults,loadedResults)
 # a = json.dumps(json.loads(t))
 

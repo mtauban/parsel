@@ -1,0 +1,664 @@
+<!doctype html>
+<html>
+
+<head>
+  <title>Parcelle.app</title>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex">
+  <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+  <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='icon/path.svg') }}"/>
+
+
+  <link rel="stylesheet" type="text/css" href="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha2/css/bootstrap.min.css" integrity="sha384-DhY6onE6f3zzKbjUPRc2hOzGAdEf4/Dz+WJwBvEYL/lkkIsI3ihufq9hk9K4lVoK" crossorigin="anonymous">
+  <!-- <link rel="stylesheet" type="text/css" href="https://unpkg.com/intro.js/minified/introjs.min.css" /> -->
+  <link rel="stylesheet" type="text/css"  href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
+  <link rel="stylesheet" type="text/css" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+  integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+  crossorigin=""/>
+  <script src="{{ url_for('static', filename='js/vex.combined.min.js') }}"></script>
+<script>vex.defaultOptions.className = 'vex-theme-wireframe'</script>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/vex.css') }}" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/vex-theme-wireframe.css') }}" />
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/notiflix-2.6.0.min.css') }}" />
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/map.css') }}" />
+</head>
+<body>
+
+  <div class="navbar navbar-inverse navbar-fixed-top shadow-sm">
+      <div class="container-fluid">
+
+        <a class="navbar-brand text-dark p-0"  href="{{ url_for('home') }}">
+          <object width="42" height="42" id="micon" type="image/svg+xml" data="{{ url_for('static', filename='icon/path.svg') }}"></object>
+        </a>
+
+
+        <a class="btn btn-dark mr-1" href="#"  id="btn-togglesat" onclick="toggleSatellite()"  role="button"><i class="fas fa-layer-group"></i></a>
+        <a class="btn btn-dark mr-1" href="#"  id="btn-togglesat" onclick="loadfrombbox()"  role="button"><i class="fas fa-draw-polygon"></i></a>
+        <a class="btn btn-dark mr-1" href="#"  id="btn-togglesat" onclick="loadfrombbox()"  role="button"><i class="fas fa-building"></i></a>
+
+        <a class="btn btn-dark mr-2" data-toggle="collapse" id="btn-forinfid" href="#infid" role="button" aria-expanded="false" aria-controls="infid">
+          <i class="fas fa-list"></i>
+        </a>
+        <button id="btn-create" type="button" class="mr-1 btn btn-dark" disabled><i class="far fa-save"></i></button>
+
+
+      <div class="input-group input-group-sm mr-1 w-25 flex-grow-1">
+        <input id="addr" class="form-control" type="text" placeholder="Rechercher" aria-label="Rechercher">
+      </div>
+
+
+
+      <a href="{{ url_for('map_list')}}" class="btn btn-dark"  type="button">
+        <i class="fas fa-user-circle"></i>
+      </a>
+
+</div>
+
+  </div>
+
+
+  <div class="mcontainer">
+
+    <div id="infid" class=" bd-highlight collapse container-sm">
+      <a href="#" onclick="locateuser()" class="btn btn-dark mr-1"><i class="fas fa-street-view"></i></a>
+
+      <p style="padding:1rem">Partagez votre plan en communiquant l'adresse de cette page.</p>
+
+      <p style="padding:1rem">Superficie totale : <span id="lbl-contenance">0</span>&nbsp;&#13217;</p>
+      <ul id="parcellist" class="list-group">
+      </ul>
+
+
+  </div>
+
+  <div id="mapid"></div>
+
+
+</div>
+<!-- <footer>
+This is footer!
+</footer> -->
+<script src="https://kit.fontawesome.com/6ea147b44a.js" crossorigin="anonymous"></script>
+<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha2/js/bootstrap.bundle.min.js" integrity="sha384-BOsAfwzjNJHrJ8cZidOg56tcQWfp6y72vEJ8xQ9w6Quywb24iOsW913URv1IS4GD" crossorigin="anonymous"></script>
+
+<script src="{{ url_for('static', filename='js/notiflix-2.6.0.min.js') }}"></script>
+
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+crossorigin=""></script>
+<!-- <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script> -->
+<script src="{{ url_for('static', filename='js/util_refactor.js') }}"></script>
+<script>
+{% if lat is defined %}
+var lat = {{ lat }} ;
+var zoomLevel = 15
+var firstTime = false
+{% else %}
+var lat = 45.764043 ;
+var zoomLevel = 5
+var firstTime = true
+{% endif %}
+
+{% if lon is defined %}
+var lon = {{ lon }} ;
+{% else %}
+var lon = 4.835659 ;
+{% endif %}
+var marker = undefined
+
+
+var confirm = false
+Notiflix.Notify.Init({plainText:false})
+Notiflix.Loading.Init({customSvgUrl:'{{ url_for('static', filename='icon/path-vue.svg') }}',svgSize:'80px',});
+
+
+
+var entrypoint = true ;
+// $(document).on({
+//   ajaxStart: function() { if (entrypoint) { Notiflix.Block.Standard('#mapid', "<span>Chargement...</span>"); } },
+//   ajaxStop: function() {  Notiflix.Block.Remove('#mapid'); entrypoint = false ;  }
+// });
+var csrf_token = "{{ csrf_token() }}";
+
+$.ajaxSetup({
+  beforeSend: function(xhr, settings) {
+    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+      xhr.setRequestHeader("X-CSRFToken", csrf_token);
+    }
+  }
+});
+/**
+We're defining the event on the `body` element,
+because we know the `body` is not going away.
+Second argument makes sure the callback only fires when
+the `click` event happens only on elements marked as `data-editable`
+*/
+$('body').on('click', '[data-editable]', function(){
+
+  var $el = $(this);
+
+  var $input = $('<input/>').val( $el.text() );
+  $el.replaceWith( $input );
+
+  var save = function(){
+    var $p = $('<'+$el.prop('nodeName')+' class="'+$el.prop('className')+'" id="'+$el.prop('id')+'"  data-editable />').text( $input.val() );
+    $input.replaceWith( $p );
+  };
+
+  /**
+  We're defining the callback with `one`, because we know that
+  the element will be gone just after that, and we don't want
+  any callbacks leftovers take memory.
+  Next time `p` turns into `input` this single callback
+  will be applied again.
+  */
+  $input.one('blur', save).focus();
+
+});
+
+
+
+var ids = "{{ ids }}".split(":") ;
+
+if (ids[0] == "") {
+  ids = []
+}
+
+var contenance = 0 ;
+
+var flaglock = false ;
+const parcellelist = new Set();
+const highlightlist = new Set();
+
+var mymap = L.map('mapid', {
+  attributionControl: false
+}).setView([lat,lon], zoomLevel);
+
+mymap.on("moveend", function () {
+
+  window.history.replaceState('', '', "/map/"+(mymap.getCenter().lat)+"/"+(mymap.getCenter().lng)+"/"+Array.from(highlightlist).join(":")) ;
+
+});
+// var osmLayer = L.tileLayer('https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.jpg90?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q', { // LIGNE 20
+//   attribution: '© OpenStreetMap contributors',
+//   maxZoom: 19,
+//   minZoom:5
+// });
+
+var osmLayer = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}{r}?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q', { // LIGNE 20
+  tileSize: 512,
+  zoomOffset: -1,
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 20,
+  minZoom:1
+});
+var satellite = false;
+var mapBoxLayer = L.tileLayer('https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}{r}.jpg90?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q', { // LIGNE 20
+  attribution: '© OpenStreetMap contributors',
+  maxZoom: 20,
+  minZoom:1
+});
+
+
+mymap.addLayer(osmLayer);
+
+
+function toggleSatellite() {
+  if (satellite) {
+    mymap.removeLayer(mapBoxLayer)
+    mymap.addLayer(osmLayer)
+    satellite = false
+    // $("#micon").attr("style","filter:invert(0%);")
+  } else {
+    mymap.removeLayer(osmLayer)
+    mymap.addLayer(mapBoxLayer)
+    satellite = true
+  //  $("#micon").attr("style","filter:invert(100%);")
+  }
+}
+
+function loadfrombbox(){
+  if (mymap.getZoom()<16) {
+      Notiflix.Notify.Failure('La zone demandée est trop vaste et comporte un nombre trop important de parcelles.');
+
+    console.log('too far to ask ign')
+    return
+  }
+  loadparcelles(mymap.getBounds())
+}
+
+
+//   var osmLayer = L.tileLayer('https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q', {
+//     attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
+//     tileSize: 512,
+//     zoomOffset: -1,
+//     maxZoom: 19,
+//     minZoom:14
+// });
+
+justclicked = false ;
+btwclick_sleep = 200
+function whenClicked(layer, force=false) {
+  if (justclicked && !force) {
+    return
+  } else {
+    justclicked = true;
+    setTimeout( function(){justclicked = false }, btwclick_sleep );
+  }
+
+  if (flaglock && !force) {
+    return
+  }
+  //  var layer = e.target;
+  var ul = $( "#parcellist" )
+
+  if (highlightlist.has(layer.feature.id)) {
+    console.log("we have it already")
+    highlightlist.delete(layer.feature.id)
+    layer.setStyle({
+      weight: 2,
+      opacity: 1,
+      color: '#555',
+      dashArray: '3',
+      fillOpacity: 0.1
+    });
+    contenance -= layer.feature.properties.contenance ;
+    var arr =   ul.children();
+    console.log(arr)
+    arr.each(function(index, item) {
+      console.log(item)
+      if (item.id == layer.feature.id) {
+        item.remove()
+        //ul.children().splice(index, 1);
+      }
+
+    });
+
+
+    // var listLength = ul.children.length;
+    // for (var i = 0; i < listLength; i++) {
+    //   li = ul.children[i];
+    //   console.log(li)
+    //   if (li.attr('id') == layer.feature.id) {
+    //     ul.removeChild(li);
+    //     break
+    //   }
+    //   //
+    // }
+  } else {
+    highlightlist.add(layer.feature.id)
+    layer.setStyle({
+      weight: 5,
+      color: '#0F0',
+      dashArray: '',
+      fillOpacity: 0.7
+    });
+    contenance += layer.feature.properties.contenance ;
+    // var li = document.createElement('li');
+    // li.id = layer.feature.id ;
+    // li.addClass("list-group-item d-flex justify-content-between align-items-center")
+    // li.appendChild(document.createTextNode(layer.feature.id));
+    var li = $('<li></li>').addClass("list-group-item d-flex justify-content-between align-items-center");
+    li.text(layer.feature.properties.prefixe+" "+layer.feature.properties.section+" "+layer.feature.properties.numero);
+    li.attr('id', layer.feature.id);
+    var span = $('<span></span>').addClass("badge rounded-pill bg-primary")
+    span.text(number_format(layer.feature.properties.contenance, 0, ',', '\u00A0')+	"\u00A0\u33A1")
+    span.appendTo(li)
+    li.appendTo(ul);
+
+  }
+
+  if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
+    layer.bringToFront();
+  }
+
+
+  if (highlightlist.size == 0) {
+    $("#btn-create").prop('disabled',true)
+  } else {
+    $("#btn-create").prop('disabled', false)
+  }
+  $("#lbl-contenance").text(number_format(contenance, 0, ',', '\u00A0'))
+  window.history.replaceState('', '', "/map/"+(mymap.getCenter().lat)+"/"+(mymap.getCenter().lng)+"/"+Array.from(highlightlist).join(":")) ;
+
+}
+
+function style(feature) {
+  return {
+    fillColor: '#FFFFFF',
+    weight: 2,
+    opacity: 1,
+    color: '#FFFF00',
+    dashArray: '3',
+    fillOpacity: 0.0
+  };
+}
+
+
+
+function dealwithgeoson(geojson, mymap, fit = false) {
+  // geojson object contains the features, need to be cleaned before display
+  index = geojson.features.length - 1;
+  console.log(index)
+  if ((index == -1 )) {
+     Notiflix.Notify.Warning('Cette zone n\'est pas encore couverte');
+
+  }
+
+  while (index >= 0) {
+    if (parcellelist.has(geojson.features[index].id)) {
+      geojson.features.splice(index, 1); // has already the object, remove it from json to be added !
+    } else {
+      parcellelist.add(geojson.features[index].id)
+
+    }
+    index -= 1;
+  }
+  // geojson now contains only feature that needs to be displayed or added to the map
+  var lset = new Set(ids)
+  console.log(lset)
+  //Création de la couche à partir du GeoJSON
+  var layer = L.geoJSON(geojson, {
+    style : style,
+    onEachFeature: function (feature, layer) {
+      layer.bindTooltip(feature.properties.section+" "+feature.properties.numero, {permanent: false, opacity: 0.7});
+      layer.on({
+        click: function(e){ whenClicked(e.target) }
+      });
+
+      if (lset.has(feature.id)) {
+        whenClicked(layer, true)
+      }
+    }
+  });
+  //Ajout de la couche sur la carte
+  layer.addTo(mymap);
+  if (fit) {
+    mymap.fitBounds(layer.getBounds())
+  }
+  ids = []
+}
+
+
+
+
+function loadparcellesfromids(ids) {
+    Notiflix.Loading.Custom('Chargement ...');
+  $.ajax({
+    //URL de l'API
+    //url: "{{ url_for('getparcels', lat = "x", lon = "y",delta = 0.005) }}".replace("/x", "/"+(lat)).replace("/y", "/"+(lon)),
+    // "{{ url_for('getparcels', lat = lat , lon= lon , delta = 0.005) }}",
+    url: "/api/ign/get-parcels/"+ids.join(":"),
+
+    //Type de données
+    dataType: "json",
+
+    //Méthode appelée lorsque le téléchargement a fonctionné
+    success: function(data){
+      Notiflix.Loading.Remove();
+      dealwithgeoson(data,mymap)
+    },
+
+    //Méthode appelée lorsque le téléchargement a échoué
+    error: function() {
+      Notiflix.Notify.Warning('Parcelles introuvables');
+
+    }
+  });
+}
+// [0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00]
+var zoomLeveAndDistance =  [0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,1.50,1.25,1.00,0.95,0.80,0.75,0.70,0.60,0.50,0.40]
+
+
+function loadparcelles(bbox) {
+
+  Notiflix.Loading.Custom('Chargement ...');
+
+  $.ajax({
+    //URL de l'API
+
+    url: "/api/ign/get-parcels-boundingbox/"+bbox._southWest.lat+"/"+bbox._southWest.lng+"/"+bbox._northEast.lat+"/"+bbox._northEast.lng ,
+    //Type de données
+    dataType: "json",
+
+    //Méthode appelée lorsque le téléchargement a fonctionné
+    success: function(data){
+      Notiflix.Loading.Remove();
+
+      dealwithgeoson(data,mymap) ; },
+
+    //Méthode appelée lorsque le téléchargement a échoué
+    error: function() {
+      Notiflix.Notify.Warning('Parcelles introuvables. La zone n\'est peut être pas couverte.');
+    }
+  });
+}
+
+
+
+
+L.control.attribution({
+  position: 'bottomleft'
+}).addTo(mymap);
+
+
+
+
+if (ids.length>0) {
+  loadparcellesfromids(ids)
+  //  $('#chk-lock').prop('checked', true);
+  //  flaglock=true
+  // ids = []
+}
+
+
+function cleanmap(map) {
+  map.eachLayer( function(layer) {
+    if (layer.hasOwnProperty("feature")) {
+      if (!(highlightlist.has(layer.feature.id))) {
+        map.removeLayer(layer)
+        parcellelist.delete(layer.feature.id)
+      }
+    }
+  })
+}
+
+
+
+$(document).ready(function() {
+
+
+  $("#btn-create").click(function() {
+    $.ajax({
+      type: "POST",
+      url: "{{ url_for('newtoken')}}",
+      // The key needs to match your method's input parameter (case-sensitive).
+      data: JSON.stringify({ 'text' : [...highlightlist].join(":") }),
+      contentType: "application/json; charset=utf-8",
+      dataType: "json",
+      success: function(data){
+        console.log(data)
+        window.location.href = "/mapcreate/"+data.token
+      },
+      error: function(errMsg) {
+        Notiflix.Notify.Error('Impossible de sauvegarder votre selection.');
+      }
+    });
+  })
+  //
+
+});
+
+var searchresults = {}
+
+$(function() {
+
+  vex.dialog.open({
+    message: 'Entrez des coordonnées GPS :',
+    input: [
+        '<input name="gpscoordinates" type="text" placeholder="45.7521,4.8120" required />',
+
+    ].join(''),
+    buttons: [
+        $.extend({}, vex.dialog.buttons.YES, { text: 'Go !' }),
+        $.extend({}, vex.dialog.buttons.NO, { text: 'Oups...' })
+    ],
+    callback: function (data) {
+        if (!data) {
+            console.log('Cancelled')
+        } else {
+            console.log('coordinates', data.gpscoordinates, )
+            var regex = /[+-]?\d+(\.\d+)?/g;
+            var floats =  data.gpscoordinates.match(regex).map(function(v) { return parseFloat(v); });
+            console.log(floats);
+            if (floats.length == 2) {
+
+            } else {
+
+            }
+        }
+    }
+})
+
+
+  $("#addr").autocomplete({
+    source: function(request, response) {
+      searchresults = {}
+      $.getJSON("https://api-adresse.data.gouv.fr/search/", { q : request.term , lat : mymap.getCenter().lat , lon :  mymap.getCenter().lng},
+      function (data) {
+        response($.map(data.features, function (item) {
+          if (item.properties.score < 0.6){
+            return;
+          }
+          searchresults[item.properties.id] = item
+          return {
+            label: item.properties.label,
+            value: item.properties.id
+          }
+        }));
+      })
+
+    },
+    minLength: 2,
+    select: function(event, ui){
+
+      //  event.target.val('').blur()
+      console.log(event, ui)
+      feature = searchresults[ui.item.value]
+      loadmarkerandcenter(feature)
+      console.log('blured')
+      //action
+      $("#addr").val('').blur();
+      return false
+    }
+  })
+  .keypress(function (e) {
+
+    if (e.which == 13) {
+      $(".ui-menu-item").hide();
+      text = ($("#addr").val())
+      if ((text.length < 2) || (Object.keys(searchresults).length == 0)) {
+        return false;
+      }
+      proba_score = 0
+      proba_key = ''
+      for (var key in searchresults) {
+        s = searchresults[key].properties.score
+        if (proba_score < s){
+          proba_score = s
+          proba_key = key
+        }
+      }
+      loadmarkerandcenter(searchresults[proba_key])
+      $("#addr").val('').blur();
+      return false;    //<---- Add this line
+    }
+  });
+});
+
+var zoombytype = {
+  'housenumber' : 20,
+  'street' : 18,
+  'locality' : 16,
+  'municipality' : 13
+}
+function loadmarkerandcenter(geojson, defaultzoom = 14) {
+  if (marker != undefined) {
+    mymap.removeLayer(marker)
+  }
+  if ('type' in geojson.properties) {
+    zoomLevel = zoombytype[geojson.properties.type]
+  } else {
+    zoomLevel = defaultzoom;
+  }
+
+  marker = L.geoJSON(geojson, {
+    pointToLayer: function (feature, latlng) {
+      return L.marker(latlng, {icon: myIcon});
+    }})
+    mymap.flyTo(marker.getBounds().getCenter(), zoomLevel)
+    marker.addTo(mymap)
+
+  }
+
+
+  var myIcon = L.icon({
+    iconUrl: '{{ url_for('static', filename='icon/path.svg') }}',
+    iconSize: [32, 37],
+    iconAnchor: [16, 37],
+    popupAnchor: [0, -28]
+  });
+
+
+
+  Notiflix.Loading.Init({customSvgUrl:'{{ url_for('static', filename='icon/path-vue.svg') }}',svgSize:'80px',});
+
+  function locateuser() {
+    mymap.locate({setView: false});
+    Notiflix.Loading.Custom('Recherche de votre position ...');
+  }
+
+  var posMarker = undefined ;
+
+
+  function onLocationFound(e) {
+    Notiflix.Loading.Remove();
+    var radius = e.accuracy;
+
+
+
+    dist = e.latlng.distanceTo(mymap.getCenter()) / 1000
+    zoomLevel = mymap.getZoom()
+    if (zoomLevel<15) {
+      zoomLevel = 15
+    }
+
+    if ((confirm) && (dist>1)) {
+      Notiflix.Confirm.Show( 'Vous êtes loin !', 'Votre position est à '+(dist).toFixed(0)+' km des parcelles de ce plan. Souhaitez vous centrer la vue sur votre position ?', 'Oui', 'Non', function(){ // Yes button callback
+        mymap.setView( e.latlng, zoomLevel) }, function(){ // No button callback
+        } );
+      } else {
+        mymap.setView( e.latlng, zoomLevel)
+      }
+
+      if (posMarker) {
+        mymap.removeLayer(posMarker)
+      }
+      posMarker = L.circle(e.latlng, { radius : radius})
+      posMarker.bindPopup('Vous êtes ici avec une précision de '+radius.toFixed(0)+' m.')
+      posMarker.addTo(mymap)
+      posMarker.bringToBack()
+
+    }
+
+    mymap.on('locationfound', onLocationFound);
+
+
+</script>
+</body>
+
+
+</html>

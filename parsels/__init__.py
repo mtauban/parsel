@@ -1,4 +1,6 @@
 from flask import Flask
+from flask_caching import Cache
+
 from flask_sqlalchemy import SQLAlchemy
 from flask_wtf.csrf import CSRFProtect
 from flask_security import Security,  SQLAlchemyUserDatastore
@@ -8,7 +10,6 @@ from flask_admin.contrib.sqla import ModelView
 from flask_security import current_user
 
 from owslib.wfs import WebFeatureService
-
 
 from werkzeug.routing import FloatConverter as BaseFloatConverter
 
@@ -26,6 +27,8 @@ csrf.init_app(app)
 app.config.from_object('config.Config')
 app.url_map.converters['float'] = FloatConverter
 
+cache = Cache(app)
+
 
 mail.init_app(app)
 db.init_app(app)
@@ -37,8 +40,13 @@ from .models import User, Role, Plan, Parcel
 # ign wfs11
 ign_apikey = "7tbcsy3xj9ymeoi4mjdlyayo"
 # apikey = "beta"
-app.wfs11 = WebFeatureService(url='https://wxs.ign.fr/'+ign_apikey+'/geoportail/wfs', version='1.1.0', headers={ 'User-Agent': 'parcelle-recs' })
+try:
+    app.wfs11 =  WebFeatureService(url='https://wxs.ign.fr/essentiels/geoportail/wfs', version='2.0.0')
 
+    #  WebFeatureService(url='https://wxs.ign.fr/'+ign_apikey+'/geoportail/wfs', version='1.1.0', headers={ 'User-Agent': 'parcelle-recs' })
+except:
+    print ("Problem with IGN Occured")
+    app.wfs11 = None
 
 
 # class UserModelView(ModelView):

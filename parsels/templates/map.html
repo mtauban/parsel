@@ -1,572 +1,482 @@
 <!doctype html>
 <html>
-
 <head>
-  <title>Parcelle.app | {{title}}</title>
+  <title>Parcelle.app</title>
   <meta charset="utf-8">
   <meta name="robots" content="noindex">
   <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
   <link rel="shortcut icon" type="image/x-icon" href="{{ url_for('static', filename='icon/path.svg') }}"/>
-
-
   <link rel="stylesheet" type="text/css" href="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha2/css/bootstrap.min.css" integrity="sha384-DhY6onE6f3zzKbjUPRc2hOzGAdEf4/Dz+WJwBvEYL/lkkIsI3ihufq9hk9K4lVoK" crossorigin="anonymous">
-  <!-- <link rel="stylesheet" type="text/css" href="https://unpkg.com/intro.js/minified/introjs.min.css" /> -->
-  <link rel="stylesheet" type="text/css"  href="https://code.jquery.com/ui/1.12.1/themes/base/jquery-ui.css">
-  <link rel="stylesheet" type="text/css" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
-  integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
-  crossorigin=""/>
+
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/main.css') }}">
   <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/notiflix-2.6.0.min.css') }}" />
-  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/map.css') }}" />
+
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A==" crossorigin="">
+
+  <!-- development version, includes helpful console warnings -->
+  <script src="https://cdn.jsdelivr.net/npm/vue@2/dist/vue.js"></script>
+  <link rel="stylesheet" type="text/css" href="{{ url_for('static', filename='css/leaflet-sidebar.css') }}">
+
+
+  <style>
+  html, body {
+    height: 100%;
+    margin: 0;
+  }
+  #mapid {
+    height: 100%; width: 100%;
+  }
+  body {
+    padding: 0; margin: 0;
+  }
+
+
+
+  .autocomplete {
+    position: relative;
+  }
+
+  .autocomplete-results {
+    padding: 0;
+    margin: 0;
+    border: 1px solid #eeeeee;
+    /* height: 120px; */
+    overflow: auto;
+    width: 100%;
+  }
+
+  .autocomplete-result {
+    list-style: none;
+    text-align: left;
+    padding: 4px 2px;
+    cursor: pointer;
+  }
+
+  .autocomplete-result.is-active,
+  .autocomplete-result:hover {
+    background-color: #000;
+        color: white;
+  }
+
+
+
+
+  </style>
+
+
 </head>
 <body>
 
-  <div class="navbar navbar-inverse navbar-fixed-top shadow-sm">
-      <div class="container-fluid">
+  <div id="sidebar" class="sidebar collapsed">
+    <!-- Nav tabs -->
+    <div class="sidebar-tabs">
+      <ul role="tablist">
+        <li><a href="#list" role="tab"><i class="far fa-compass"></i></a></li>
 
-        <a class="navbar-brand text-dark p-0"  href="{{ url_for('home') }}">
-          <object width="42" height="42" id="micon" type="image/svg+xml" data="{{ url_for('static', filename='icon/path.svg') }}"></object>
-        </a>
-
-
-        <a class="btn btn-dark mr-1" href="#"  id="btn-togglesat" onclick="toggleSatellite()"  role="button"><i class="fas fa-layer-group"></i></a>
-        <a class="btn btn-dark mr-1" href="#"  id="btn-togglesat" onclick="loadfrombbox()"  role="button"><i class="fas fa-draw-polygon"></i></a>
-        <a class="btn btn-dark mr-1" href="#"  id="btn-togglesat" onclick="loadfrombbox()"  role="button"><i class="fas fa-building"></i></a>
-
-        <a class="btn btn-dark mr-2" data-toggle="collapse" id="btn-forinfid" href="#infid" role="button" aria-expanded="false" aria-controls="infid">
-          <i class="fas fa-list"></i>
-        </a>
-        <button id="btn-create" type="button" class="mr-1 btn btn-dark" disabled><i class="far fa-save"></i></button>
-
-
-      <div class="input-group input-group-sm mr-1 w-25 flex-grow-1">
-        <input id="addr" class="form-control" type="text" placeholder="Rechercher" aria-label="Rechercher">
-      </div>
-
-
-
-      <a href="{{ url_for('map_list')}}" class="btn btn-dark"  type="button">
-        <i class="fas fa-user-circle"></i>
-      </a>
-
-</div>
-
-  </div>
-
-
-  <div class="mcontainer">
-
-    <div id="infid" class=" bd-highlight collapse container-sm">
-      <a href="#" onclick="locateuser()" class="btn btn-dark mr-1"><i class="fas fa-street-view"></i></a>
-
-      <p style="padding:1rem">Partagez votre plan en communiquant l'adresse de cette page.</p>
-
-      <p style="padding:1rem">Superficie totale : <span id="lbl-contenance">0</span>&nbsp;&#13217;</p>
-      <ul id="parcellist" class="list-group">
+        <li><a href="#search" role="tab"><i class="fa fa-list"></i></a></li>
+        <!-- <li><a href="#plan" role="tab"><i class="fas fa-map-pin"></i></a></li> -->
+        <!-- <li><a href="#" role="button"><i class="fas fa-save"></i></a></li> -->
       </ul>
 
-      <p style="padding:1rem"> <a href="https://fr.surveymonkey.com/r/3CVSLNW">Une remarque ou une demande ? C'est par ici !</a></p>
+      <ul role="tablist">
+        <!-- <li><a href=""><i class="far fa-user"></i></a></li> -->
+        <!-- <li><a href=""><i class="far fa-question-circle"></i></a></li> -->
+        <li><a href="#"  onclick="toggleSatellite()"  role="button"><i class="fas fa-layer-group"></i></a></li>
+        <!-- <li><a href="{{ url_for('map_list')}}" role="tab"><i class="fa fa-times"></i></a> -->
+        </ul>
+      </div>
 
-      <!-- <div class="form-check form-switch">
-      <input class="form-check-input" type="checkbox" id="chk-lock">
-      <label class="form-check-label" for="chk-lock">  Lecture seule</label>
-    </div> -->
+      <!-- Tab panes -->
+      <div class="sidebar-content">
+        <div class="sidebar-pane" id="list">
+          <h1 class="sidebar-header">
+            Parcelles
+            <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+          </h1>
+          <p>Parcelle.app permet de partager facilement des extraits du cadastre. Commencez par rentrer l'adresse du bien immobilier :</p>
+                <div id="ac_location">
+          <div class="autocomplete">
+              <!-- <h2>Recherche:</h2> -->
+            <input id="search_input" placeholder="117 Rue Cuvier, Lyon" class="form-control" type="text" v-model="search" @keyup="inputChanged" @keydown.down="onArrow" @keydown.up="onArrow" />
+            <ul                  v-show="isOpen"
+            class="autocomplete-results">
+              <li
+                v-for="(f, i) in features"
+                :key="i"
+                class="autocomplete-result"
+                :class="{ 'is-active': i === arrowCounter }"
+                @click="setResult(i)"
+                >
+                [[ f.properties.label ]]
+              </li>
+            </ul>
+          </div>
+                </div>
+                <div id="location" class="mb-3">
+                      <h2>Coordonnées</h2>
+                      <p>[[ location_postcode ]] [[ location_city ]] ([[ location_citycode ]])</p>
+                      <p class="form-label">Latitude :</p>  <input class="form-control" v-on:change="updateLoc" v-model="lat">
+                      <p class="form-label">Longitude :</p> <input class="form-control" v-on:change="updateLoc" v-model="lon">
+                      <p class="form-label">Zoom :</p> <input type="range" class="form-range" min="6" max="20" step="1" v-on:change="updateLoc" v-model="zl">
+                      </div>
 
+        </div>
+
+
+        <div class="sidebar-pane" id="search">
+          <h1 class="sidebar-header">
+            Listing
+            <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+          </h1>
+          <p>Ensuite vous décidez si vous voulez charger des parcelles ou des bâtiments : </p>
+          <ul>
+            <li><a href="#"  onclick="load_parcelles('parcels')"  role="button"><i class="fas fa-vector-square"></i> Charger les Parcelles</a></li>
+            <li><a href="#"  onclick="load_parcelles('buildings')"  role="button"><i class="fas fa-building"></i> Charger les Bâtiments</a></li>
+          </ul>
+          <div id="v_v_list">
+            <h2>Selection</h2>
+            <p>Ici apparaissent les élements que vous avez selectionnés</p>
+            <div class="list-group">
+            <parcel-list
+            v-for="parcel in parcels_map"
+            v-bind:key="parcel.id"
+            v-bind:parcel="parcel"
+            v-on:mouse-click="p_select($event)"
+            v-on:mouse-on="p_style_highlight($event)"
+            v-on:mouse-off="p_style_restore($event)"
+            v-on:action-click="p_remove($event)"
+            ></parcel-list>
+            </div>
+            <h2>Toutes</h2>
+
+            <p>Ici apparaissent tous les élements que vous avez chargés</p>
+            <div class="list-group">
+            <parcel-list
+            v-for="parcel in parcels_search"
+            v-bind:key="parcel.id"
+            v-bind:parcel="parcel"
+            v-on:mouse-click="p_select($event)"
+            v-on:mouse-on="p_style_highlight($event)"
+            v-on:mouse-off="p_style_restore($event)"
+            v-on:action-click="p_add($event)"
+            ></parcel-list>
+          </div>
+
+          </div>
+        </div>
+
+        <!-- <div class="sidebar-pane" id="plan">
+          <h1 class="sidebar-header">
+            Plan
+            <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+          </h1>
+          <div id="v_v_plan">
+          </div>
+        </div> -->
+
+      </div>
+    </div>
+
+    <div id="mapid" class="sidebar-map">
+    </div>
+  </body>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+  <script src="{{ url_for('static', filename='js/notiflix-2.6.0.min.js') }}"></script>
+
+  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+  <script src="{{ url_for('static', filename='js/leaflet-sidebar.js') }}"></script>
+  <script src="https://kit.fontawesome.com/6ea147b44a.js" crossorigin="anonymous"></script>
+  <script src="{{ url_for('static', filename='js/util_refactor.js') }}"></script>
+
+  <script>
+  Vue.options.delimiters = ['[[', ']]'];
+
+Vue.filter('geometre', function (value) { return contenance_format(value)  })
+Vue.filter('geometre_building', function (value) { return contenance_format_building(value)  })
+Vue.filter('format_batiment_id', function (value) { return format_batiment_id(value)  })
+
+
+
+
+Vue.component('parcel-list', {
+  props: ['parcel'],
+  template: `
+    <div class="list-group-item" v-on:click="$emit('mouse-click', parcel.id  )" v-on:mouseover="$emit('mouse-on', parcel.id  )"    v-on:mouseleave="$emit('mouse-off', parcel.id  )">
+    <div class="d-flex w-100 justify-content-between">
+      <h5 v-if="parcel.properties.a_type.charAt(0) === 'p'" class="mb-1"><i class="fas fa-vector-square"></i> [[ parcel.properties.section ]] [[ parcel.properties.numero ]]</h5>
+      <h5 v-else-if="parcel.properties.a_type === 'b0'" class="mb-1"><i class="far fa-building"></i> [[ parcel.id  | format_batiment_id ]]</h5>
+      <h5 v-else class="mb-1"><i class="fas fa-campground"></i>bâtiment léger</h5>
+          <button type="button" class="btn-close" aria-label="Close" v-on:click="$emit('action-click', parcel.id  )"></button>
+    </div>
+    <p class="mb-1" v-if="parcel.properties.a_type.charAt(0) === 'p'">[[ parcel.properties.nom_com ]]</p>
+    <p class="mb-1" v-else>[[ parcel.properties.code_insee ]]</p>
+    <p>
+    <small v-if="parcel.properties.a_type.charAt(0) === 'p'">[[ parcel.properties.id ]]</small>
+    <small v-else>[[ parcel.properties.type ]]</small>
+
+  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'p'">[[ parcel.properties.contenance | geometre ]]</small>
+  <small class="badge bg-dark rounded-pill" v-else>[[ parcel.properties.contenance | geometre_building ]]</small>
+
+  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">hauteur [[ parcel.properties.hauteur ]] m</small>
+  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Etages [[ parcel.properties.nombre_d_etages ]]</small>
+  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Logements [[ parcel.properties.nombre_de_logements ]]</small>
+  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Usage principal [[ parcel.properties.usage_1 ]]</small>
+  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Usage secondaire [[ parcel.properties.usage_2 ]]</small>
+  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Date Apparition [[ parcel.properties.date_d_apparition ]]</small>
+
+</p>  </div>
+  `
+})
+
+Vue.component('building-list', {
+  props: ['building'],
+  template: `
+    <div class="list-group-item" v-on:click="$emit('mouse-click', building.id  )" v-on:mouseover="$emit('mouse-on', building.id  )"    v-on:mouseleave="$emit('mouse-off', building.id  )">
+    <div class="d-flex w-100 justify-content-between">
+      <h5 class="mb-1">[[ building.id ]] [[ building.properties.code_insee ]]</h5>
+          <button type="button" class="btn-close" aria-label="Close" v-on:click="$emit('action-click', building.id  )"></button>
+    </div>
+    <p class="mb-1">[[ building.properties.type ]]</p>
+    <div class="d-flex w-100 justify-content-between">
+    <small>[[ building.id ]]</small>
+  <small class="badge bg-dark rounded-pill">[[ building.properties.contenance  | geometre_building ]]</small>
   </div>
+  </div>
+  `
+})
 
-  <div id="mapid"></div>
+  var vm = new Vue({
+    el: '#location',
+    data: {
+      lat: 45.764043,
+      lon: 4.835659,
+      zl: 5,
+      location_city : '',
+      location_citycode : '',
+      location_postcode : '',
+    },
+    methods: {
+      updateLoc : function (event) {
+        mymap.setView([vm.lat,vm.lon], vm.zl)
+      }
+    },
+    delimiters: ['[[',']]']
 
+  })
 
-</div>
-<!-- <footer>
-This is footer!
-</footer> -->
-<script src="https://kit.fontawesome.com/6ea147b44a.js" crossorigin="anonymous"></script>
-<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
-<script src="https://code.jquery.com/ui/1.12.1/jquery-ui.min.js" crossorigin="anonymous"></script>
-
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/5.0.0-alpha2/js/bootstrap.bundle.min.js" integrity="sha384-BOsAfwzjNJHrJ8cZidOg56tcQWfp6y72vEJ8xQ9w6Quywb24iOsW913URv1IS4GD" crossorigin="anonymous"></script>
-
-<script src="{{ url_for('static', filename='js/notiflix-2.6.0.min.js') }}"></script>
-
-<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
-integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
-crossorigin=""></script>
-<!-- <script src="https://unpkg.com/intro.js/minified/intro.min.js"></script> -->
-<script src="{{ url_for('static', filename='js/util_refactor.js') }}"></script>
-<script>
-{% if lat is defined %}
-var lat = {{ lat }} ;
-var zoomLevel = 15
-var firstTime = false
-{% else %}
-var lat = 45.764043 ;
-var zoomLevel = 5
-var firstTime = true
-{% endif %}
-
-{% if lon is defined %}
-var lon = {{ lon }} ;
-{% else %}
-var lon = 4.835659 ;
-{% endif %}
-var marker = undefined
-
-
-var confirm = false
-Notiflix.Notify.Init({plainText:false})
-// Notiflix.Block.Standard('#mapid', "<span>Chargement...</span>");
-
-
-
-  Notiflix.Loading.Init({customSvgUrl:'{{ url_for('static', filename='icon/path-vue.svg') }}',svgSize:'80px',});
-
-
-
-var entrypoint = true ;
-// $(document).on({
-//   ajaxStart: function() { if (entrypoint) { Notiflix.Block.Standard('#mapid', "<span>Chargement...</span>"); } },
-//   ajaxStop: function() {  Notiflix.Block.Remove('#mapid'); entrypoint = false ;  }
-// });
-var csrf_token = "{{ csrf_token() }}";
-
-$.ajaxSetup({
-  beforeSend: function(xhr, settings) {
-    if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
-      xhr.setRequestHeader("X-CSRFToken", csrf_token);
-    }
+  function fetchLocation() {
+    url = "https://api-adresse.data.gouv.fr/reverse/?lon="+vm.lon+"&lat="+vm.lat
+    fetch(url)
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(jsonResponse) {
+        if(jsonResponse["features"].length ==0) {
+          return
+        }
+        vm.location_city =  jsonResponse["features"][0]["properties"]["city"]
+        vm.location_citycode =  jsonResponse["features"][0]["properties"]["citycode"]
+        vm.location_postcode =  jsonResponse["features"][0]["properties"]["postcode"]
+        document.title = "Parcelle.app - " + vm.location_city
+      });
   }
-});
-/**
-We're defining the event on the `body` element,
-because we know the `body` is not going away.
-Second argument makes sure the callback only fires when
-the `click` event happens only on elements marked as `data-editable`
-*/
-$('body').on('click', '[data-editable]', function(){
-
-  var $el = $(this);
-
-  var $input = $('<input/>').val( $el.text() );
-  $el.replaceWith( $input );
-
-  var save = function(){
-    var $p = $('<'+$el.prop('nodeName')+' class="'+$el.prop('className')+'" id="'+$el.prop('id')+'"  data-editable />').text( $input.val() );
-    $input.replaceWith( $p );
-  };
-
-  /**
-  We're defining the callback with `one`, because we know that
-  the element will be gone just after that, and we don't want
-  any callbacks leftovers take memory.
-  Next time `p` turns into `input` this single callback
-  will be applied again.
-  */
-  $input.one('blur', save).focus();
-
-});
 
 
+ac =  new Vue({
+    el: "#ac_location",
+    data: {
+      features : [],
+      search: '',
+      arrowCounter: -1,
+      isOpen: false,
+    },
+    methods: {
+      setResult(index) {
+        if ((this.features.length == 0) || (index == -1)){ // we can't do nothing because nothing is available
 
-var ids = "{{ ids }}".split(":") ;
+        }
+        // console.log(this.features[index].properties.label)
+        loadmarkerandcenter(this.features[index])
+        this.features = []
 
-if (ids[0] == "") {
-  ids = []
+      },
+
+      onArrow(event) {
+
+        if (this.features.length > 0) {
+          this.arrowCounter = event.code == "ArrowDown" ? ++this.arrowCounter : --this.arrowCounter;
+          if (this.arrowCounter >= this.features.length)
+            this.arrowCounter = (this.arrowCounter) % this.features.length;
+          else if (this.arrowCounter < 0)
+            this.arrowCounter = this.features.length + this.arrowCounter;
+        }
+      },
+
+      inputChanged(event) {
+
+        if (event.code == "ArrowUp" || event.code == "ArrowDown")
+          return;
+
+        if (event.code == "Enter") {
+            this.setResult(this.arrowCounter)
+            return
+          }
+
+
+        if (this.search.length<3) {
+          this.isOpen = false
+          return
+
+        }
+        this.isOpen = true
+
+        var api_url = "https://api-adresse.data.gouv.fr/search/"
+        var api_params =  { limit : 8, autocomplete : 1, q : this.search , lat : mymap.getCenter().lat , lon :  mymap.getCenter().lng},
+        api_data = Object.keys(api_params).map(
+          function(k){ return encodeURIComponent(k) + '=' + encodeURIComponent(api_params[k]) }
+        ).join('&');
+        api_full_url = (api_url+"?"+api_data)
+        fetch(api_full_url)
+        .then(function(response) {
+          return response.json();
+        })
+        .then(function(jsonResponse) {
+          ac.features = []
+          jsonResponse.features.map(
+            function(item) {
+              if (item.properties.score < 0.6){
+                return;
+              }
+              ac.features.push(item)
+            }
+          )
+        })
+
+
+        // console.log(this.features)
+      }
+    }
+  })
+
+
+  //
+  // Map Initialization
+  //
+
+
+  var mymap = L.map('mapid', {   attributionControl: false, zoomControl: false});
+  var sidebar = L.control.sidebar('sidebar', {position: 'left'}).addTo(mymap);
+
+
+  L.Control.Watermark = L.Control.extend({
+    onAdd: function(map) {
+      var div = L.DomUtil.create('div');
+      div.innerHTML = '<object width="50" height="50" id="micon" type="image/svg+xml" data="{{ url_for('static', filename='icon/path.svg') }}"></object>'
+      return div;
+    },
+    onRemove: function(map) {
+      // Nothing to do here
+    }
+  });
+
+  L.control.watermark = function(opts) {return new L.Control.Watermark(opts);}
+  L.control.watermark({ position: 'topright' }).addTo(mymap);
+  L.control.attribution({position: 'bottomright'}).addTo(mymap);
+  L.control.zoom({  position:'bottomright'}).addTo(mymap);
+
+
+
+  var osmLayer = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}{r}?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q', { // LIGNE 20
+    tileSize: 512,
+    zoomOffset: -1,
+    attribution: 'Mapbox',
+    maxZoom: 20,
+    minZoom:1
+  });
+  var satellite = false;
+  satellite_url = 'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}{r}.jpg90?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q'
+  var mapBoxLayer = L.tileLayer(satellite_url, { // LIGNE 20
+    attribution: 'Mapbox',
+    maxZoom: 20,
+    minZoom:1
+  });
+
+  var PlanLayerGroup = new L.FeatureGroup([],  { attribution: 'ign.fr'})
+  var SearchLayerGroup = new L.FeatureGroup([])
+  var BuildingsLayerGroup = new L.FeatureGroup([])
+
+  mymap.addLayer(osmLayer);
+  PlanLayerGroup.addTo(mymap)
+  SearchLayerGroup.addTo(mymap)
+  BuildingsLayerGroup.addTo(mymap)
+
+  // var baseMaps = {
+  //     "Rue": osmLayer,
+  //     "Satellite": mapBoxLayer
+  // };
+  //
+  // var overlayMaps = {
+  //     "Plan": PlanLayerGroup,
+  //     "Bâtiments": BuildingsLayerGroup,
+  //     "Parcelles" : SearchLayerGroup
+  // };
+  //
+  // L.control.layers(baseMaps, overlayMaps).addTo(mymap);
+  //
+
+
+  mymap.on("moveend", function () {
+    vm.lat = mymap.getCenter().lat
+    vm.lon = mymap.getCenter().lng
+    vm.zl = mymap.getZoom()
+    fetchLocation()
+    updatewindowhistory()
+  });
+
+
+
+  //
+  // End map init
+  //
+  //
+
+//
+// Usefull things
+//
+
+function updatewindowhistory(){
+//  window.history.replaceState('', '', "/map/"+(mymap.getCenter().lat)+","+(mymap.getCenter().lng)+","+(mymap.getZoom())+","+v_plan.id+","+v_parcels.ids.join(':'))
+window.history.replaceState('', '', "/map/"+(mymap.getCenter().lat)+","+(mymap.getCenter().lng)+","+(mymap.getZoom())+",,"+v_parcels.ids.join(':'))
+
 }
-
-var contenance = 0 ;
-
-var flaglock = false ;
-const parcellelist = new Set();
-const highlightlist = new Set();
-
-var mymap = L.map('mapid', {
-  attributionControl: false
-}).setView([lat,lon], zoomLevel);
-
-mymap.on("moveend", function () {
-
-  window.history.replaceState('', '', "/map/"+(mymap.getCenter().lat)+"/"+(mymap.getCenter().lng)+"/"+Array.from(highlightlist).join(":")) ;
-
-});
-// var osmLayer = L.tileLayer('https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.jpg90?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q', { // LIGNE 20
-//   attribution: '© OpenStreetMap contributors',
-//   maxZoom: 19,
-//   minZoom:5
-// });
-
-var osmLayer = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}{r}?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q', { // LIGNE 20
-  tileSize: 512,
-  zoomOffset: -1,
-  attribution: '© OpenStreetMap contributors',
-  maxZoom: 20,
-  minZoom:1
-});
-var satellite = false;
-var mapBoxLayer = L.tileLayer('https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}{r}.jpg90?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q', { // LIGNE 20
-  attribution: '© OpenStreetMap contributors',
-  maxZoom: 20,
-  minZoom:1
-});
-
-
-mymap.addLayer(osmLayer);
-
 
 function toggleSatellite() {
   if (satellite) {
     mymap.removeLayer(mapBoxLayer)
     mymap.addLayer(osmLayer)
     satellite = false
-    // $("#micon").attr("style","filter:invert(0%);")
+    document.querySelector("#micon").setAttribute("style","filter:invert(0%);")
   } else {
     mymap.removeLayer(osmLayer)
     mymap.addLayer(mapBoxLayer)
     satellite = true
-  //  $("#micon").attr("style","filter:invert(100%);")
+    document.querySelector("#micon").setAttribute("style","filter:invert(100%);")
   }
 }
 
-function loadfrombbox(){
-  if (mymap.getZoom()<16) {
-      Notiflix.Notify.Failure('La zone demandée est trop vaste et comporte un nombre trop important de parcelles.');
 
-    console.log('too far to ask ign')
-    return
-  }
-  loadparcelles(mymap.getBounds())
-}
+//
+// usefull to set the view to a search result
+//
+var search_marker = undefined
 
-
-//   var osmLayer = L.tileLayer('https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q', {
-//     attribution: 'Map data &copy; <a href="https://www.openstreetmap.org/">OpenStreetMap</a> contributors, <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA</a>, Imagery © <a href="https://www.mapbox.com/">Mapbox</a>',
-//     tileSize: 512,
-//     zoomOffset: -1,
-//     maxZoom: 19,
-//     minZoom:14
-// });
-
-justclicked = false ;
-btwclick_sleep = 200
-function whenClicked(layer, force=false) {
-  if (justclicked && !force) {
-    return
-  } else {
-    justclicked = true;
-    setTimeout( function(){justclicked = false }, btwclick_sleep );
-  }
-
-  if (flaglock && !force) {
-    return
-  }
-  //  var layer = e.target;
-  var ul = $( "#parcellist" )
-
-  if (highlightlist.has(layer.feature.id)) {
-    console.log("we have it already")
-    highlightlist.delete(layer.feature.id)
-    layer.setStyle({
-      weight: 2,
-      opacity: 1,
-      color: '#555',
-      dashArray: '3',
-      fillOpacity: 0.1
-    });
-    contenance -= layer.feature.properties.contenance ;
-    var arr =   ul.children();
-    console.log(arr)
-    arr.each(function(index, item) {
-      console.log(item)
-      if (item.id == layer.feature.id) {
-        item.remove()
-        //ul.children().splice(index, 1);
-      }
-
-    });
-
-
-    // var listLength = ul.children.length;
-    // for (var i = 0; i < listLength; i++) {
-    //   li = ul.children[i];
-    //   console.log(li)
-    //   if (li.attr('id') == layer.feature.id) {
-    //     ul.removeChild(li);
-    //     break
-    //   }
-    //   //
-    // }
-  } else {
-    highlightlist.add(layer.feature.id)
-    layer.setStyle({
-      weight: 5,
-      color: '#0F0',
-      dashArray: '',
-      fillOpacity: 0.7
-    });
-    contenance += layer.feature.properties.contenance ;
-    // var li = document.createElement('li');
-    // li.id = layer.feature.id ;
-    // li.addClass("list-group-item d-flex justify-content-between align-items-center")
-    // li.appendChild(document.createTextNode(layer.feature.id));
-    var li = $('<li></li>').addClass("list-group-item d-flex justify-content-between align-items-center");
-    li.text(layer.feature.properties.prefixe+" "+layer.feature.properties.section+" "+layer.feature.properties.numero);
-    li.attr('id', layer.feature.id);
-    var span = $('<span></span>').addClass("badge rounded-pill bg-primary")
-    span.text(number_format(layer.feature.properties.contenance, 0, ',', '\u00A0')+	"\u00A0\u33A1")
-    span.appendTo(li)
-    li.appendTo(ul);
-
-  }
-
-  if (!L.Browser.ie && !L.Browser.opera && !L.Browser.edge) {
-    layer.bringToFront();
-  }
-
-
-  if (highlightlist.size == 0) {
-    $("#btn-create").prop('disabled',true)
-  } else {
-    $("#btn-create").prop('disabled', false)
-  }
-  $("#lbl-contenance").text(number_format(contenance, 0, ',', '\u00A0'))
-  window.history.replaceState('', '', "/map/"+(mymap.getCenter().lat)+"/"+(mymap.getCenter().lng)+"/"+Array.from(highlightlist).join(":")) ;
-
-}
-
-function style(feature) {
-  return {
-    fillColor: '#FFFFFF',
-    weight: 2,
-    opacity: 1,
-    color: '#555',
-    dashArray: '3',
-    fillOpacity: 0.1
-  };
-}
-
-
-
-function dealwithgeoson(geojson, mymap, fit = false) {
-  // geojson object contains the features, need to be cleaned before display
-  index = geojson.features.length - 1;
-  console.log(index)
-  if ((index == -1 )) {
-     Notiflix.Notify.Warning('Cette zone n\'est pas encore couverte');
-
-  }
-
-  while (index >= 0) {
-    if (parcellelist.has(geojson.features[index].id)) {
-      geojson.features.splice(index, 1); // has already the object, remove it from json to be added !
-    } else {
-      parcellelist.add(geojson.features[index].id)
-
-    }
-    index -= 1;
-  }
-  // geojson now contains only feature that needs to be displayed or added to the map
-  var lset = new Set(ids)
-  console.log(lset)
-  //Création de la couche à partir du GeoJSON
-  var layer = L.geoJSON(geojson, {
-    style : style,
-    onEachFeature: function (feature, layer) {
-      layer.bindTooltip(feature.properties.section+" "+feature.properties.numero, {permanent: false, opacity: 0.7});
-      layer.on({
-        click: function(e){ whenClicked(e.target) }
-      });
-
-      if (lset.has(feature.id)) {
-        whenClicked(layer, true)
-      }
-    }
-  });
-  //Ajout de la couche sur la carte
-  layer.addTo(mymap);
-  if (fit) {
-    mymap.fitBounds(layer.getBounds())
-  }
-  ids = []
-}
-
-
-
-
-function loadparcellesfromids(ids) {
-    Notiflix.Loading.Custom('Chargement ...');
-  $.ajax({
-    //URL de l'API
-    //url: "{{ url_for('getparcels', lat = "x", lon = "y",delta = 0.005) }}".replace("/x", "/"+(lat)).replace("/y", "/"+(lon)),
-    // "{{ url_for('getparcels', lat = lat , lon= lon , delta = 0.005) }}",
-    url: "/api/ign/get-parcels/"+ids.join(":"),
-
-    //Type de données
-    dataType: "json",
-
-    //Méthode appelée lorsque le téléchargement a fonctionné
-    success: function(data){
-      Notiflix.Loading.Remove();
-      dealwithgeoson(data,mymap)
-    },
-
-    //Méthode appelée lorsque le téléchargement a échoué
-    error: function() {
-      Notiflix.Notify.Warning('Parcelles introuvables');
-
-    }
-  });
-}
-// [0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00]
-var zoomLeveAndDistance =  [0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,0.00,1.50,1.25,1.00,0.95,0.80,0.75,0.70,0.60,0.50,0.40]
-
-
-function loadparcelles(bbox) {
-
-  Notiflix.Loading.Custom('Chargement ...');
-
-  $.ajax({
-    //URL de l'API
-
-    url: "/api/ign/get-parcels-boundingbox/"+bbox._southWest.lat+"/"+bbox._southWest.lng+"/"+bbox._northEast.lat+"/"+bbox._northEast.lng ,
-    //Type de données
-    dataType: "json",
-
-    //Méthode appelée lorsque le téléchargement a fonctionné
-    success: function(data){
-      Notiflix.Loading.Remove();
-
-      dealwithgeoson(data,mymap) ; },
-
-    //Méthode appelée lorsque le téléchargement a échoué
-    error: function() {
-      Notiflix.Notify.Warning('Parcelles introuvables. La zone n\'est peut être pas couverte.');
-    }
-  });
-}
-
-
-
-
-L.control.attribution({
-  position: 'bottomleft'
-}).addTo(mymap);
-
-
-
-
-if (ids.length>0) {
-  loadparcellesfromids(ids)
-  //  $('#chk-lock').prop('checked', true);
-  //  flaglock=true
-  // ids = []
-}
-
-
-function cleanmap(map) {
-  map.eachLayer( function(layer) {
-    if (layer.hasOwnProperty("feature")) {
-      if (!(highlightlist.has(layer.feature.id))) {
-        map.removeLayer(layer)
-        parcellelist.delete(layer.feature.id)
-      }
-    }
-  })
-}
-
-
-
-$(document).ready(function() {
-
-
-  $("#btn-create").click(function() {
-    $.ajax({
-      type: "POST",
-      url: "{{ url_for('newtoken')}}",
-      // The key needs to match your method's input parameter (case-sensitive).
-      data: JSON.stringify({ 'text' : [...highlightlist].join(":") }),
-      contentType: "application/json; charset=utf-8",
-      dataType: "json",
-      success: function(data){
-        console.log(data)
-        window.location.href = "/mapcreate/"+data.token
-      },
-      error: function(errMsg) {
-        Notiflix.Notify.Error('Impossible de sauvegarder votre selection.');
-      }
-    });
-  })
-  //
-
+var parcelleapp_icon = L.icon({
+  iconUrl: '{{ url_for('static', filename='icon/path.svg') }}',
+  iconSize: [32, 37],
+  iconAnchor: [16, 37],
+  popupAnchor: [0, -28]
 });
 
-var searchresults = {}
-
-$(function() {
-
-  // if (firstTime) {
-  //   Notiflix.Report.Merge({messageMaxLength:600,});
-  //    Notiflix.Report.Info( 'Editeur de plan Parcelle.app',
-  //    "Bienvenue sur l'éditeur de Parcelle.<br /><br /> \
-  //     Les parcelles se chargeront dès que vous serez suffisement proche dans les zones couvertes.<br /> \
-  //     Retrouvez la liste des parcelles selectionnées avec le bouton  <i class=\"btn btn-outline-dark fas fa-list\"></i>. <br /> \
-  //     Accedez à plus d'options en enregistrant le plan : <i class=\"btn btn-outline-dark fas fa-save\"></i>. <br /> \
-  //     ",
-  //    'C\'est parti !!' );
-  // }
-
-  $("#addr").autocomplete({
-    source: function(request, response) {
-      searchresults = {}
-      $.getJSON("https://api-adresse.data.gouv.fr/search/", { q : request.term , lat : mymap.getCenter().lat , lon :  mymap.getCenter().lng},
-      function (data) {
-        response($.map(data.features, function (item) {
-          if (item.properties.score < 0.6){
-            return;
-          }
-          searchresults[item.properties.id] = item
-          return {
-            label: item.properties.label,
-            value: item.properties.id
-          }
-        }));
-      })
-
-    },
-    minLength: 2,
-    select: function(event, ui){
-
-      //  event.target.val('').blur()
-      console.log(event, ui)
-      feature = searchresults[ui.item.value]
-      loadmarkerandcenter(feature)
-      console.log('blured')
-      //action
-      $("#addr").val('').blur();
-      return false
-    }
-  })
-  .keypress(function (e) {
-
-    if (e.which == 13) {
-      $(".ui-menu-item").hide();
-      text = ($("#addr").val())
-      if ((text.length < 2) || (Object.keys(searchresults).length == 0)) {
-        return false;
-      }
-      proba_score = 0
-      proba_key = ''
-      for (var key in searchresults) {
-        s = searchresults[key].properties.score
-        if (proba_score < s){
-          proba_score = s
-          proba_key = key
-        }
-      }
-      loadmarkerandcenter(searchresults[proba_key])
-      $("#addr").val('').blur();
-      return false;    //<---- Add this line
-    }
-  });
-});
 
 var zoombytype = {
   'housenumber' : 20,
@@ -575,8 +485,11 @@ var zoombytype = {
   'municipality' : 13
 }
 function loadmarkerandcenter(geojson, defaultzoom = 14) {
-  if (marker != undefined) {
-    mymap.removeLayer(marker)
+
+//   this.features[index].properties.label
+
+  if (search_marker != undefined) {
+    mymap.removeLayer(search_marker)
   }
   if ('type' in geojson.properties) {
     zoomLevel = zoombytype[geojson.properties.type]
@@ -584,70 +497,484 @@ function loadmarkerandcenter(geojson, defaultzoom = 14) {
     zoomLevel = defaultzoom;
   }
 
-  marker = L.geoJSON(geojson, {
+  search_marker = L.geoJSON(geojson, {
     pointToLayer: function (feature, latlng) {
-      return L.marker(latlng, {icon: myIcon});
+      return L.marker(latlng, {icon: parcelleapp_icon});
     }})
-    mymap.flyTo(marker.getBounds().getCenter(), zoomLevel)
-    marker.addTo(mymap)
+    mymap.flyTo(search_marker.getBounds().getCenter(), zoomLevel)
+    search_marker.addTo(mymap)
 
+    console.log(geojson.properties.label)
+  //  document.getElementById("search_input").value =
+    ac.search = geojson.properties.label
+    sidebar.open('search')
   }
 
 
-  var myIcon = L.icon({
-    iconUrl: '{{ url_for('static', filename='icon/path.svg') }}',
-    iconSize: [32, 37],
-    iconAnchor: [16, 37],
-    popupAnchor: [0, -28]
+//
+// load parcellesearc
+//
+
+
+var activelayer = undefined ;
+// var v_plan =  new Vue({
+//     el: "#v_v_plan",
+//     data: {
+//       contenance : 0,
+//       parcels : {},
+//       activelayer : undefined ,
+//     },
+//     methods: {
+//       p_remove : function(element) {
+//           parcel_remove(element)
+//       },
+//       p_select : function(element) {
+//           toggleActive(element)
+//
+//       },
+//     }
+//   })
+//
+// var v_plan =  new Vue({
+//   el: "#v_v_plan",
+//   data: {
+//     id : '',
+//     properties : {
+//     title : '',
+//     }
+//   }
+// })
+
+var v_parcels =  new Vue({
+      el: "#v_v_list",
+      data: {
+        parcels : {},
+        activelayer : undefined ,
+        backdoor : 0
+      },
+      computed: {
+      contenance :  function () {
+          this.backdoor;
+          contenance = 0
+          Object.values(this.parcels).forEach((parcel, i) => {
+              if (parcel.properties._selected) {
+                contenance += parcel.properties.contenance
+              }
+          });
+          return contenance
+      },
+      ids : function() {
+        this.backdoor;
+        ids = []
+        Object.values(this.parcels).forEach((parcel, i) => {
+            if (parcel.properties._selected) {
+              ids.push(parcel.id)
+            }
+        });
+        return ids
+      },
+      parcels_map : function () {
+          this.backdoor // Use to force triger recomputation on change
+          return Object.values(this.parcels).filter( parcel => ((parcel.properties._selected == true) ) )
+      },
+      parcels_search : function () {
+        this.backdoor  // Use to force triger recomputation on change
+        return Object.values(this.parcels).filter( parcel => ((parcel.properties._selected == false) ) )
+      },
+    },
+      methods: {
+        p_remove : function(element) {
+            this.backdoor++
+            parcel_remove(element)
+        },
+        p_add : function(element) {
+            this.backdoor++
+            parcel_add_to_map(element)
+        },
+        p_select : function(element) {
+            toggleActive(element)
+        },
+        p_style_restore : function(element) {
+          style_restore(element)
+        },
+        p_style_highlight: function(element) {
+          style_highlight(element)
+        }
+      }
+    })
+
+
+function load_parcelles(p = "parcels") {
+  if (mymap.getZoom()<16) {
+      Notiflix.Notify.Failure('La zone demandée est trop vaste et comporte un nombre trop important de parcelles.');
+    console.log('too far to ask ign')
+    return
+  }
+  bbox = mymap.getBounds()
+  Notiflix.Loading.Custom('Chargement ...');
+    api_full_url = "/api/ign/get-"+p+"-boundingbox/"+bbox._southWest.lat+"/"+bbox._southWest.lng+"/"+bbox._northEast.lat+"/"+bbox._northEast.lng ,
+    fetch(api_full_url)
+    .then(function(response) {
+      if(response.ok)
+      {
+        return response.json();
+      }
+      Notiflix.Loading.Remove();
+      throw new Error(response.status);
+    })
+    .then(function(jsonResponse) {
+        Notiflix.Loading.Remove();
+        if (jsonResponse.numberMatched>jsonResponse.numberReturned) {
+          Notiflix.Notify.Warning("Chargement partiel de "+jsonResponse.numberReturned+"/"+jsonResponse.numberMatched+" parcelles. Connectez-vous pour en charger plus.");
+        }
+        storeGeoJSON(jsonResponse).forEach(function(element) {
+        v_parcels.parcels[element].properties._selected = false
+        addToTheLayer(element,(element.id == "parcels") ? SearchLayerGroup : BuildingsLayerGroup)
+        })
+    })
+    .catch(function(error) {                        // catch
+      console.log('IGN Server not available', error);
+      Notiflix.Report.Failure('Erreur IGN','Serveurs IGN non accessibles. <br /> Essayez dans quelques instants.','Ok');
+    });
+}
+
+
+var loaders = 0
+
+
+
+/**
+ * Loads from IGN parcelles and batiments whose id are in array ids
+ *
+ * @param {array} ids
+ * @return {}
+ */
+function load_parcelles_from_ids(ids) {
+  // We may received ids that are already loaded
+  f_ids = []  // So we create the f_ids that will contain only the ids that are not already loaded
+  ids.forEach(function(p) {
+    if (Object.keys(v_parcels.parcels).indexOf(p) < 0) {
+      f_ids.push(p)
+    } else { // For those already loaded, we still "highligh" them
+      parcel_add_to_map(p)
+    }
+  }
+  )
+  ids=f_ids
+  console.log(ids)
+
+  addendum =  ids.filter( p => (p.charAt(0) == 'p')  ).join(":")
+  if (addendum.length > 0) {
+  if (loaders == 0)
+    {Notiflix.Loading.Custom('Chargement des parcelles ...');}
+  loaders += 1 ;
+    api_full_url = "/api/ign/get-parcels/"+addendum
+    fetch(api_full_url)
+    .then(function(response) {
+      if(response.ok)
+      {
+        return response.json();
+      }
+      loaders -= 1 ;
+      if (loaders == 0)
+      {  Notiflix.Loading.Remove();}
+      throw new Error(response.status);
+    })
+    .then(function(jsonResponse) {
+      loaders -= 1 ;
+      if (loaders == 0)
+      {  Notiflix.Loading.Remove();}
+        storeGeoJSON(jsonResponse).forEach(function(element) {
+          v_parcels.parcels[element].properties._selected = true
+          addToTheLayer(element,SearchLayerGroup)
+          parcel_add_to_map(element)
+        })
+    })
+    .catch(function(error) {                        // catch
+      console.log('IGN Server not available', error);
+      Notiflix.Report.Failure('Erreur IGN','Serveurs IGN non accessibles. <br /> Essayez plus tard.','Ok');
+    });
+  }
+
+    addendum =  ids.filter( p => (p.charAt(0) == 'b') )
+    if (addendum.length> 0) {
+  if (loaders == 0)  { Notiflix.Loading.Custom('Chargement des bâtiments ...'); }
+   loaders += 1 ;
+      api_full_url = "/api/ign/get-buildings/"+addendum
+      fetch(api_full_url)
+      .then(function(response) {
+        if(response.ok)
+        {
+          return response.json();
+        }
+        loaders -= 1 ;
+        if (loaders == 0)
+        {  Notiflix.Loading.Remove();}
+        throw new Error(response.status);
+      })
+      .then(function(jsonResponse) {
+        loaders -= 1 ;
+        if (loaders == 0)
+        {  Notiflix.Loading.Remove();}
+
+          storeGeoJSON(jsonResponse).forEach(function(element) {
+            v_parcels.parcels[element].properties._selected = true
+            addToTheLayer(element,SearchLayerGroup)
+            parcel_add_to_map(element)
+          })
+      })
+      .catch(function(error) {                        // catch
+        console.log('IGN Server not available', error);
+        Notiflix.Report.Failure('Erreur IGN','Serveurs IGN non accessibles. <br /> Essayez plus tard.','Ok');
+      });
+    }
+
+}
+
+
+function addToTheLayer(id, layergroup, style = styleNotActive()) {
+  if (v_parcels.parcels[id].layer == null) {
+    v_parcels.parcels[id].layer =    L.geoJSON(v_parcels.parcels[id])
+    v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="parcel_add_to_map(\''+id+'\')"><i class="far fa-plus-square"></i></a>');
+    v_parcels.parcels[id].layer.setStyle(style)
+    v_parcels.parcels[id].layer.on('click', function()  { toggleActive(id) } );
+    layergroup.addLayer(v_parcels.parcels[id].layer)
+  }
+}
+
+/**
+ * Returns an array of ids of element stored in the global v_parcels object
+ *
+ * @param {json} data a GeoJSON FeatureCollection
+ * @return {array} ids of loaded elements
+ */
+function storeGeoJSON(data) {
+  larray = []
+  data.features.forEach(function(element) {
+    if (!(element.id in v_parcels.parcels)) {
+      Vue.set(v_parcels.parcels, element.id,  {
+      "type": "Feature",
+      "properties": element.properties,
+      "geometry": element.geometry,
+      "layer" : null,
+      "id" : element.id
+    })
+    larray.push(element.id) ;
+  }
+})
+return larray
+}
+
+
+function style_highlight(id) {
+  v_parcels.parcels[id].layer.setStyle(styleHighlighted())
+}
+function style_restore(id) {
+  if (activelayer == id) {
+      lstyle = styleSelected()
+  } else
+  switch(v_parcels.parcels[id].properties._selected) {
+  case true:
+    lstyle = styleActive()
+    break
+  case false:
+    lstyle = styleNotActive()
+    break
+  default:
+    lstyle = styleNotActive()
+}
+v_parcels.parcels[id].layer.setStyle(lstyle)
+}
+
+function toggleActive(id) {
+  // console.log(id)
+  if (id == undefined) {
+    return
+  }
+
+  if (activelayer != id) { // activate selected style
+    if (activelayer != undefined)
+      toggleActive(activelayer)
+    activelayer = id
+    v_parcels.parcels[id].layer.setStyle(styleSelected())
+    return
+  } else { // restore standard style
+    activelayer = undefined ;
+    switch(v_parcels.parcels[id].properties._selected) {
+    case true:
+      lstyle = styleActive()
+      break
+    case false:
+      lstyle = styleNotActive()
+      break
+    default:
+      lstyle = styleNotActive()
+  }
+  v_parcels.parcels[id].layer.setStyle(lstyle) ;
+}
+}
+
+
+
+function parcel_add_to_map(id) {
+  SearchLayerGroup.removeLayer(v_parcels.parcels[id].layer)
+  PlanLayerGroup.addLayer(v_parcels.parcels[id].layer)
+  v_parcels.parcels[id].layer.setStyle(styleActive())
+  v_parcels.parcels[id].properties._selected = true
+  v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+"<a class=\"mt-2 btn btn-danger text-white\" href=\"#\" onclick=\"v_parcels.p_remove('"+id+"')\">  \
+  <i class=\"fa fa-trash-o fa-lg\"></i></a>");
+  v_parcels.backdoor += 1
+  updatewindowhistory()
+}
+
+
+
+function parcel_remove(id) {
+  l = v_parcels.parcels[id].layer
+  PlanLayerGroup.removeLayer(v_parcels.parcels[id].layer)
+  v_parcels.parcels[id].layer.setStyle(styleNotActive())
+
+  SearchLayerGroup.addLayer(v_parcels.parcels[id].layer)
+  v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="v_parcels.p_add(\''+id+'\')"><i class="far fa-plus-square"></i></a>');
+
+  temp = v_parcels.parcels[id]
+  temp.properties._selected = false
+  Vue.set(v_parcels.parcels, id, temp)
+  updatewindowhistory()
+}
+
+
+// Part for making a plan
+// @TODO : ask for a csrf_token programmatically !
+function generate_a_token() {
+  arr = []
+  Object.values(v_parcels.parcels).forEach(function(element) {
+    var {layer, ...rest} = element
+    arr.push(rest)
+  }
+  );
+
+
+  body_object = {'text': arr}
+  console.log(JSON.stringify(body_object))
+
+  fetch('/token', {
+    method: 'POST',
+    headers: {
+      "X-CSRFToken" : "{{ csrf_token() }}",
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body_object)
+  }).then(function(response) {
+    return response.json();
+  }).then(function(data) {
+    token = data.token
+    console.log(token)
   });
 
 
+}
 
-  Notiflix.Loading.Init({customSvgUrl:'{{ url_for('static', filename='icon/path-vue.svg') }}',svgSize:'80px',});
 
-  function locateuser() {
-    mymap.locate({setView: false});
-    Notiflix.Loading.Custom('Recherche de votre position ...');
+
+
+// Part for making a plan
+// @TODO : ask for a csrf_token programmatically !
+function generate_a_nplan() {
+  arr = []
+  Object.values(v_parcels.parcels).forEach(function(element) {
+    var {layer, ...rest} = element
+    arr.push(rest)
   }
+  );
+  body_object = {nplan: {
+    id : v_plan.id,
+    title : v_plan.title,
+    parcels : arr
+  }}
+  console.log(JSON.stringify(body_object))
 
-  var posMarker = undefined ;
+  fetch('/api/createnplan', {
+    method: 'POST',
+    headers: {
+      "X-CSRFToken" : "{{ csrf_token() }}",
+      'Accept': 'application/json',
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(body_object)
+  }).then(function(response) {
+    return response.json();
+  }).then(function(data) {
+    console.log(data)
+  });
+}
 
 
-  function onLocationFound(e) {
-    Notiflix.Loading.Remove();
-    var radius = e.accuracy;
+function load_nplan(uid, extra) {
+  api_full_url = "/api/getnplan/" + uid
+  fetch(api_full_url)
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(jsonResponse) {
+    console.log(jsonResponse)
+    storeGeoJSON(jsonResponse.parcels).forEach(function(element) {
+      console.log(element)
+      console.log(v_parcels.parcels[element].properties._selected)
+      addToTheLayer(element,(v_parcels.parcels[element].id.charAt(0) == "p") ? SearchLayerGroup : SearchLayerGroup, (v_parcels.parcels[element].properties._selected) ? styleActive() : styleNotActive())
+    })
+    mymap.fitBounds(SearchLayerGroup.getBounds());
+    updatewindowhistory()
+    // load additional
+    if (extra != '') {
+      ids = extra.split('#')[0]  ; // # added to prevent contamination with # if added to url
+      console.log(ids)
+      load_parcelles_from_ids(ids.split(':'))
+    }
+  })
+}
 
 
+// Init
 
-    dist = e.latlng.distanceTo(mymap.getCenter()) / 1000
-    zoomLevel = mymap.getZoom()
-    if (zoomLevel<15) {
-      zoomLevel = 15
+
+ Notiflix.Notify.Init({plainText:false})
+ Notiflix.Loading.Init({customSvgUrl:'{{ url_for('static', filename='icon/path-vue.svg') }}',svgSize:'80px',});
+  // Notiflix.Loading.Custom('Chargement ...');
+  // Notiflix.Loading.Remove();
+
+    let params = window.location.href.split('/').pop().split(',');
+    if (params.length==1) {
+      console.log("opening") ;
+      sidebar.open('list');
+      document.getElementById("search_input").focus();
+    }
+    if (params.length>1) {
+
+      vm.lon = parseFloat(params[1]) ;
+      vm.lat = parseFloat(params[0]) ;
+    }
+    if (params.length>2) {
+      vm.zl = parseFloat(params[2])  ;
+    }
+    if (params.length>3) {
+      // v_plan.id = params[3]
+      // if (v_plan.id != '') {
+      // load_nplan(params[3], (params.length>4) ? params[4] : '' )
+      //}
+    }
+    if ((params[3] == '') && (params.length>4)) {
+      ids = params[4].split('#')[0]  ; // # added to prevent contamination with # if added to url
+      // console.log(ids)
+      load_parcelles_from_ids(ids.split(':'))
+    }
+    if (!(isNaN(vm.lat)) || !(isNaN(vm.lon)) || !(isNaN(vm.zl))) {
+      mymap.setView([vm.lat,vm.lon], vm.zl)
     }
 
-    if ((confirm) && (dist>1)) {
-      Notiflix.Confirm.Show( 'Vous êtes loin !', 'Votre position est à '+(dist).toFixed(0)+' km des parcelles de ce plan. Souhaitez vous centrer la vue sur votre position ?', 'Oui', 'Non', function(){ // Yes button callback
-        mymap.setView( e.latlng, zoomLevel) }, function(){ // No button callback
-        } );
-      } else {
-        mymap.setView( e.latlng, zoomLevel)
-      }
 
-      if (posMarker) {
-        mymap.removeLayer(posMarker)
-      }
-      posMarker = L.circle(e.latlng, { radius : radius})
-      posMarker.bindPopup('Vous êtes ici avec une précision de '+radius.toFixed(0)+' m.')
-      posMarker.addTo(mymap)
-      posMarker.bringToBack()
-
-    }
-
-    mymap.on('locationfound', onLocationFound);
 
 
 </script>
-</body>
-
-
 </html>

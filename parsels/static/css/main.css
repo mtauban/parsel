@@ -1,5 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;700&display=swap');
 
+:root {
+    --bs-yellow: #E9C201;
+    --bs-teal: #078282;
+    --bs-strong: #FFFACD;
+    --bs-building: blue;
+    --bs-parcel: green;
+}
+
+
 html {
   scroll-behavior: smooth;
 }

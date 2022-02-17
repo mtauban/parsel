@@ -41,3 +41,8 @@ class Config:
 
     IGN_API_KEY = "7tbcsy3xj9ymeoi4mjdlyayo"
     IGN_USER_AGENT = "parcelle-recs"
+
+
+    CACHE_TYPE = "filesystem" # Flask-Caching related configs
+    CACHE_DEFAULT_TIMEOUT = 300
+    CACHE_DIR	= "/tmp/"

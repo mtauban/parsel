@@ -4,10 +4,14 @@ from flask_security import current_user, auth_required
 
 from geoalchemy2.shape import to_shape
 import shapely
+
 import json
-from . import app, db
-from .models import Parcel, Plan, Association, Token
+import ujson
+
+from . import app, db, cache
+from .models import Parcel, Plan, Association, Token, Map, Feature
 from geoalchemy2.functions import ST_DistanceSphere, ST_MakePoint, ST_Centroid, ST_DWithin, ST_SetSRID, ST_AsGeoJSON, ST_Contains, ST_MakeEnvelope
+from geoalchemy2.functions import ST_GeomFromGeoJSON
 
 import pyproj
 import shapely.ops as ops
@@ -17,9 +21,22 @@ from shapely.geometry import shape, GeometryCollection
 from area import area
 
 from functools import partial
-
-
+import math
 import requests
+
+#
+# def getAreafromGeometry(polygon):
+#     geom_area = ops.transform(
+#     partial(
+#         pyproj.transform,
+#         pyproj.Proj('EPSG:4326'),
+#         pyproj.Proj(
+#             proj='aea',
+#             lat_1=polygon.bounds[1],
+#             lat_2=polygon.bounds[3])),
+#     polygon)
+#     return geom_area.area
+
 
 @app.route('/')
 def entrypoint():
@@ -93,20 +110,6 @@ def map_update():
     return jsonify({ 'status' : 'success'})
 
 
-# @app.route('/createmap/<ids>' )
-# @auth_required()
-# def create_map(ids):
-#     seq = ids.split(':')
-#     a = db.session.query(Parcel).filter(Parcel.id.in_(seq)).all()
-#     p = Plan()
-#     p.user_id = current_user.id
-#     for parcel in a:
-#         a = Association()
-#         a.parcel = parcel
-#         p.parcels.append(a)
-#     db.session.add(p)
-#     db.session.commit()
-#     return redirect(url_for('map_list'))
 
 @app.route('/user' )
 @auth_required()
@@ -119,9 +122,10 @@ def user_detail():
 @app.route('/mymaps' )
 @auth_required()
 def map_list():
-    a = db.session.query(Plan).filter(Plan.user_id == current_user.id).all()
+    a = db.session.query(Map).filter(Map.user_id == current_user.id).all()
     # print(a)
     return render_template('mymaps.html', plan_liste=a)
+
 
 
 @app.route('/mapcreate/<uid>' )
@@ -129,24 +133,53 @@ def map_list():
 def map_create(uid):
     tok = Token.query.get(uid)
     seq = tok.text.split(':')
-    a = db.session.query(Parcel).filter(Parcel.id.in_(seq)).all()
-    p = Plan()
-    p.user_id = current_user.id
-    contenance = 0
-    for parcel in a:
-        a = Association()
-        a.parcel = parcel
-        p.parcels.append(a)
-        contenance += a.parcel.contenance
-        if p.commune == None :
-            p.commune = a.parcel.commune
-    p.name = "Plan sans titre à "+p.commune
-    p.contenance = contenance
-    db.session.add(p)
+
+    requested_parcels = [ 'parcelle.'+p[1:] for p in seq if p[0] == 'p' ]
+    #@TODO: we should check that the list contains only ids !!!
+    response = app.wfs11.getfeature(typename='CADASTRALPARCELS.PARCELLAIRE_EXPRESS:parcelle',
+                                outputFormat='application/json',
+                                featureid=requested_parcels)
+    t = (response.read())
+    data = json.loads(t)
+    data = ign_posttreatment_parcels(data)
+
+    requested_buildings = [ 'batiment.'+p[1:] for p in seq if p[0] == 'b' ]
+    response = app.wfs11.getfeature(typename='BDTOPO_V3:batiment',
+                                    outputFormat='application/json',
+                                    featureid=requested_buildings)
+    t = (response.read())
+    data_b = json.loads(t)
+    data_b = ign_posttreatment_buildings(data_b)
+
+    print(data)
+    print(data_b)
+
+
+    m = Map(user_id = current_user.id, properties = {})
+    db.session.add(m)
+    db.session.commit()
+    print(m.id)
+
+
+    for p in data['features']:
+        print(p['id'])
+        print(json.dumps(p['properties'],  sort_keys=True))
+        f = Feature(id_ign = p['id'],
+                    geometry = ST_GeomFromGeoJSON(ujson.dumps(p['geometry'])),
+                    properties = p['properties'],
+                    )
+        m.features.append(f)
+    for p in data_b['features']:
+        print(p['id'])
+        print(json.dumps(p['properties'],  sort_keys=True))
+        f = Feature(id_ign = p['id'],
+                    geometry = ST_GeomFromGeoJSON(ujson.dumps(p['geometry'])),
+                    properties = p['properties'],
+                    )
+        m.features.append(f)
     db.session.commit()
 
-    return redirect(url_for('map_edit', mapid = p.id))
-
+    return jsonify({ 'status' : 'success', 'map_id' : m.id})
 
 
 @app.route('/mapdelete/<uid>' , methods=['DELETE'])
@@ -200,21 +233,11 @@ def from_address():
     lon = ll[0]
     return redirect(url_for('vmap', lat=lat, lon=lon))
 
-
-@app.route('/map')
-def naked_map():
+@app.route('/map', defaults={'u_path': ''})
+@app.route('/map/', defaults={'u_path': ''})
+@app.route('/map/<path:u_path>')
+def vmap(u_path):
     return render_template('map.html')
-
-
-@app.route('/map/<float:lat>/<float:lon>/<ids>')
-def ar_vmap(lat, lon, ids=""):
-    return render_template('map.html', lat=lat, lon=lon, ids=ids)
-
-
-@app.route('/map/<float:lat>/<float:lon>/')
-@app.route('/map/<float:lat>/<float:lon>')
-def vmap(lat, lon, ids=""):
-    return render_template('map.html', lat=lat, lon=lon, ids=ids)
 
 #
 # @app.route('/')
@@ -288,8 +311,6 @@ def parcel_lookup():
 
 @app.route('/api/get-map/<mapid>')
 def getmap(mapid):
-
-
     plan =  db.session.query((Plan)).filter(Plan.id == mapid).first();
     if (plan == None):
         abort(404, description="Resource not found")
@@ -355,21 +376,49 @@ def getparcels(lat, lon, delta=0.005):
     return response
 
 
-def ign_posttreatment(data):
+def ign_posttreatment_buildings(data):
     for feature in data["features"]:
-        feature["id"] = feature["id"].split(".")[1] # feature["properties"]["idu"]
+        # print(feature)
+        feature["id"] = "b"+feature["id"].split(".")[1]
+
+
+        feature["properties"]["contenance"] = area((feature["geometry"]))
+        feature["properties"]["id"] = feature["id"]
+        feature["properties"]["a_type"] = "b" + ('0' if feature["properties"]["construction_legere"] == False else '1')
+    return data
+
+def ign_posttreatment_parcels(data):
+    for feature in data["features"]:
+        feature["id"] = "p"+feature["id"].split(".")[1] # feature["properties"]["idu"]
         # this part assumes that the id is composed of "parcelle." + the actual math monkey id.
-        feature["properties"]["contenance"] = area(feature["geometry"])
+        feature["properties"]["contenance"] = area((feature["geometry"]))
         feature["properties"]["commune"] = feature["properties"].pop('code_insee')
         feature["properties"]["prefixe"] = feature["properties"].pop('com_abs')
         feature["properties"]["id"] = feature["properties"].pop('idu')
+        feature["properties"]["a_type"] = "p"
     return data
 
 
+def ign_checkwfs(app):
+    if app.wfs11 == None:
+        # ign wfs11
+        ign_apikey = "7tbcsy3xj9ymeoi4mjdlyayo"
+        # apikey = "beta"
+        try:
+            app.wfs11 =  WebFeatureService(url='https://wxs.ign.fr/essentiels/geoportail/wfs', version='2.0.0')
+
+            # app.wfs11 = WebFeatureService(url='https://wxs.ign.fr/'+ign_apikey+'/geoportail/wfs', version='1.1.0', headers={ 'User-Agent': 'parcelle-recs' })
+        except:
+            print ("Timeout occurred")
+            app.wfs11 = None
+    return app.wfs11
+
 #ign support for bounding box
 @app.route('/api/ign/get-parcels-boundingbox/<float:lad>/<float:lod>/<float:lam>/<float:lom>')
+@cache.memoize(30 * 24 * 60 * 60)
 def ign_getparcels_boundingbox(lod,lad,lom,lam):
-
+    if (ign_checkwfs(app) == None):
+        return jsonify(error=500, text="Impossible de communiquer avec les serveurs de l'IGN"), 500
     headers = {
        'User-Agent': app.config['IGN_USER_AGENT']
      }
@@ -385,8 +434,8 @@ def ign_getparcels_boundingbox(lod,lad,lom,lam):
         lam = a
 
     box = (lod,lad,lom,lam)
-    mf = 500
-    featuresLimit = mf # we do not provide more than mf features !
+    mf = 1000
+    featuresLimit = 2000 # we do not provide more than mf features !
     totalResults = mf
     loadedResults = 0
     data = None
@@ -412,23 +461,98 @@ def ign_getparcels_boundingbox(lod,lad,lom,lam):
         #print(t)
     #print(totalResults,loadedResults)
 
-    data = ign_posttreatment(data)
+    data = ign_posttreatment_parcels(data)
     return jsonify(data)
+
+
+
+
+
+#ign support for bounding box
+@app.route('/api/ign/get-buildings-boundingbox/<float:lad>/<float:lod>/<float:lam>/<float:lom>')
+@cache.memoize(30 * 24 * 60 * 60)
+def ign_getbuildings_boundingbox(lod,lad,lom,lam):
+    if (ign_checkwfs(app) == None):
+        return jsonify(error=500, text="Impossible de communiquer avec les serveurs de l'IGN"), 500
+    headers = {
+       'User-Agent': app.config['IGN_USER_AGENT']
+     }
+
+    if (lod>lom):
+        a = lod
+        lod = lom
+        lom = a
+
+    if (lad>lam):
+        a = lad
+        lad = lam
+        lam = a
+
+    box = (lod,lad,lom,lam)
+    mf = 1000
+    featuresLimit = 2000 # we do not provide more than mf features !
+    totalResults = mf
+    loadedResults = 0
+    data = None
+    while ((loadedResults<totalResults) and (loadedResults<featuresLimit)):
+        response = app.wfs11.getfeature(typename='BDTOPO_V3:batiment',
+                                bbox=box,outputFormat='application/json',
+                                maxfeatures=mf,
+                                startindex=loadedResults)
+        t = (response.read())
+        a = json.loads(t)
+
+        #print(json.dumps(a))
+        if (loadedResults == 0):
+            totalResults = a["totalFeatures"]
+            data = a
+        else:
+            print(a)
+            data["features"] = data["features"] + a["features"]
+            data["numberReturned"] += a["numberReturned"]
+
+        loadedResults += a["numberReturned"]
+        #print(t)
+    #print(totalResults,loadedResults)
+
+    data = ign_posttreatment_buildings(data)
+    return jsonify(data)
+
 
 
 
 @app.route('/api/ign/get-parcels/<ids>')
+@cache.memoize(30 * 24 * 60 * 60)
 def ign_getparcelfromids(ids):
-    ll = ids.split(':')
+    if (ign_checkwfs(app) == None):
+        return jsonify(error=500, text="Impossible de communiquer avec les serveurs de l'IGN"), 500
+    requested_parcels = [ 'parcelle.'+p[1:] for p in ids.split(':') if p[0] == 'p' ]
     #@TODO: we should check that the list contains only ids !!!
     response = app.wfs11.getfeature(typename='CADASTRALPARCELS.PARCELLAIRE_EXPRESS:parcelle',
                                 outputFormat='application/json',
-                                featureid=ll)
+                                featureid=requested_parcels)
     t = (response.read())
     data = json.loads(t)
-    data = ign_posttreatment(data)
+    data = ign_posttreatment_parcels(data)
+
     return jsonify(data)
 
+
+@app.route('/api/ign/get-buildings/<ids>')
+# @cache.memoize(30 * 24 * 60 * 60)
+def ign_getbuildingsfromids(ids):
+    if (ign_checkwfs(app) == None):
+        return jsonify(error=500, text="Impossible de communiquer avec les serveurs de l'IGN"), 500
+    print(ids)
+    requested_buildings = [ 'batiment.'+p[1:] for p in ids.split(',') if p[0] == 'b' ]
+    print(requested_buildings)
+    response = app.wfs11.getfeature(typename='BDTOPO_V3:batiment',
+                                    outputFormat='application/json',
+                                    featureid=requested_buildings)
+    t = (response.read())
+    data_b = json.loads(t)
+    data_b = ign_posttreatment_buildings(data_b)
+    return jsonify(data_b)
 
 
 
@@ -466,13 +590,59 @@ def getparcelfromids(ids):
 @app.route('/token', methods=['POST'])
 def newtoken():
     if not(request.is_json):
+        print('not in json')
         return
-
-    tok = Token()
-    tok.text = (request.json.get('text'))
+    tok = Token(text = ujson.dumps(request.json.get('text')))
+    print(tok.text)
     db.session.add(tok)
     db.session.commit()
     return jsonify({ 'token' : tok.id, 'text' : tok.text })
+
+
+@app.route('/api/createnplan', methods=['POST'])
+def new_nplan():
+    if not(request.is_json):
+        print('not in json')
+        return jsonify({ 'status' : 'error'})
+    # print(request.json)
+    nplan = request.json.get('nplan')
+
+    for p in nplan['parcels']:
+        print(p['id'])
+
+
+
+    m = Map(user_id = current_user.id, properties = {})
+    db.session.add(m)
+    db.session.commit()
+    print(m.id)
+
+
+    for p in nplan['parcels']:
+        print(p['id'])
+        f = Feature(id_ign = p['id'],
+                    geometry = ST_GeomFromGeoJSON(ujson.dumps(p['geometry'])),
+                    properties = (p['properties']),
+                    )
+        m.features.append(f)
+    db.session.commit()
+    return jsonify({ 'nplan' : { 'id' : (m.id)}})
+
+
+
+
+@app.route('/api/getnplan/<uid>', methods=['GET'])
+def get_nplan(uid):
+    nplan = Map.query.get(uid)
+    return jsonify({
+        'id' : nplan.id,
+        'properties' : nplan.properties,
+        'parcels' : {
+            "type": "FeatureCollection",
+            "features" : [f.toGeo() for f in nplan.features]
+            }
+    })
+
 
 @app.route('/token/<uid>', methods=['GET'])
 def gettoken(uid):
