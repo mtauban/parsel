@@ -752,7 +752,12 @@ function load_parcelles_from_ids(ids) {
 function addToTheLayer(id, layergroup, style = styleNotActive()) {
   if (v_parcels.parcels[id].layer == null) {
     v_parcels.parcels[id].layer =    L.geoJSON(v_parcels.parcels[id])
-    v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="parcel_add_to_map(\''+id+'\')"><i class="far fa-plus-square"></i></a>');
+    if (v_parcels.parcels[id].properties.a_type.charAt(0) === 'p') {
+      v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="v_parcels.p_add(\''+id+'\')"><i class="far fa-plus-square"></i></a>');
+    } else {
+      v_parcels.parcels[id].layer.bindPopup(format_batiment_id(v_parcels.parcels[id].properties.id)+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="v_parcels.p_add(\''+id+'\')"><i class="far fa-plus-square"></i></a>');
+    }
+    // v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="parcel_add_to_map(\''+id+'\')"><i class="far fa-plus-square"></i></a>');
     v_parcels.parcels[id].layer.setStyle(style)
     v_parcels.parcels[id].layer.on('click', function()  { toggleActive(id) } );
     layergroup.addLayer(v_parcels.parcels[id].layer)
@@ -832,14 +837,26 @@ function toggleActive(id) {
 }
 
 
+function formatdetails(id){
+  str = '' ;
+  Object.keys(v_parcels.parcels[id].properties).forEach(element =>  { value = v_parcels.parcels[id].properties[element] ; if (value != '')  { str += element +' '+value+"<br>" } }  )
+  return str
+}
 
 function parcel_add_to_map(id) {
   SearchLayerGroup.removeLayer(v_parcels.parcels[id].layer)
   PlanLayerGroup.addLayer(v_parcels.parcels[id].layer)
   v_parcels.parcels[id].layer.setStyle(styleActive())
   v_parcels.parcels[id].properties._selected = true
-  v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+"<a class=\"mt-2 btn btn-danger text-white\" href=\"#\" onclick=\"v_parcels.p_remove('"+id+"')\">  \
-  <i class=\"fa fa-trash-o fa-lg\"></i></a>");
+  if (v_parcels.parcels[id].properties.a_type.charAt(0) === 'p') {
+    v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+formatdetails(id)+"<a class=\"mt-2 btn btn-danger text-white\" href=\"#\" onclick=\"v_parcels.p_remove('"+id+"')\">  \
+     <i class=\"fa fa-trash-o fa-lg\"></i></a>" );
+  } else {
+    v_parcels.parcels[id].layer.bindPopup(format_batiment_id(v_parcels.parcels[id].properties.id)+"<br />"+formatdetails(id)+"<a class=\"mt-2 btn btn-danger text-white\" href=\"#\" onclick=\"v_parcels.p_remove('"+id+"')\">  \
+     <i class=\"fa fa-trash-o fa-lg\"></i></a>" );
+  }
+  // v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+"<a class=\"mt-2 btn btn-danger text-white\" href=\"#\" onclick=\"v_parcels.p_remove('"+id+"')\">  \
+  // <i class=\"fa fa-trash-o fa-lg\"></i></a>");
   v_parcels.backdoor += 1
   updatewindowhistory()
 }
@@ -850,10 +867,12 @@ function parcel_remove(id) {
   l = v_parcels.parcels[id].layer
   PlanLayerGroup.removeLayer(v_parcels.parcels[id].layer)
   v_parcels.parcels[id].layer.setStyle(styleNotActive())
-
   SearchLayerGroup.addLayer(v_parcels.parcels[id].layer)
-  v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="v_parcels.p_add(\''+id+'\')"><i class="far fa-plus-square"></i></a>');
-
+  if (v_parcels.parcels[id].properties.a_type.charAt(0) === 'p') {
+    v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="v_parcels.p_add(\''+id+'\')"><i class="far fa-plus-square"></i></a>');
+  } else {
+    v_parcels.parcels[id].layer.bindPopup(format_batiment_id(v_parcels.parcels[id].properties.id)+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="v_parcels.p_add(\''+id+'\')"><i class="far fa-plus-square"></i></a>');
+  }
   temp = v_parcels.parcels[id]
   temp.properties._selected = false
   Vue.set(v_parcels.parcels, id, temp)
