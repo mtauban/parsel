@@ -539,7 +539,7 @@ def ign_getparcelfromids(ids):
 
 
 @app.route('/api/ign/get-buildings/<ids>')
-# @cache.memoize(30 * 24 * 60 * 60)
+@cache.memoize(30 * 24 * 60 * 60)
 def ign_getbuildingsfromids(ids):
     if (ign_checkwfs(app) == None):
         return jsonify(error=500, text="Impossible de communiquer avec les serveurs de l'IGN"), 500
