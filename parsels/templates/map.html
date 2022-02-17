@@ -130,7 +130,7 @@
             <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
           </h1>
           <p>Ensuite vous décidez si vous voulez charger des parcelles ou des bâtiments : </p>
-          
+
             <a class="btn btn btn-light" href="#"  onclick="load_parcelles('parcels')"  role="button"><i class="fas fa-vector-square"></i> Charger les Parcelles</a></li>
             <a class="btn btn btn-light" href="#"  onclick="load_parcelles('buildings')"  role="button"><i class="fas fa-building"></i> Charger les Bâtiments</a></li>
           <div id="v_v_list">
@@ -477,11 +477,12 @@ function copyText() {
  document.execCommand("Copy");
 
  document.body.removeChild(myTemporaryInputElement);
+ Notiflix.Notify.Success('URL du plan dans le presse papier.')
 }
 
 
 function sharepopup() {
-Notiflix.Report.Success('Partager le plan', 'Copier et coller le lien suivant pour partager le plan ou cliquer <a href="#" onclick="copyText()">ici</a>. '+window.location.href)
+Notiflix.Report.Success('Partager le plan', 'Copier et coller l\'adresse de la page ou cliquez sur <a href="#" onclick="copyText()">ce lien</a> pour partager le plan. ')
 }
 //
 // usefull to set the view to a search result

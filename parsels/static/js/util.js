@@ -1,6 +1,6 @@
 
-Notiflix.Notify.Init({plainText:false,useGoogleFont:true,fontFamily:'Quicksand',messageMaxLength:500});
-Notiflix.Report.Init({plainText:false,useGoogleFont:true,fontFamily:'Quicksand',messageMaxLength:500});
+Notiflix.Notify.Init({plainText:false,useGoogleFont:true,fontFamily:'Quicksand',messageMaxLength:1500});
+Notiflix.Report.Init({plainText:false,useGoogleFont:true,fontFamily:'Quicksand',messageMaxLength:1500});
 
 
 
