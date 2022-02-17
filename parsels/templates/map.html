@@ -79,8 +79,7 @@
       </ul>
 
       <ul role="tablist">
-        <!-- <li><a href=""><i class="far fa-user"></i></a></li> -->
-        <!-- <li><a href=""><i class="far fa-question-circle"></i></a></li> -->
+        <li><a href="#" onclick="sharepopup()" role="button"><i class="far fa-share-square"></i></a></li>
         <li><a href="#"  onclick="toggleSatellite()"  role="button"><i class="fas fa-layer-group"></i></a></li>
         <!-- <li><a href="{{ url_for('map_list')}}" role="tab"><i class="fa fa-times"></i></a> -->
         </ul>
@@ -465,6 +464,24 @@ function toggleSatellite() {
 }
 
 
+function copyText() {
+  textToCopy = window.location.href ;
+ var myTemporaryInputElement = document.createElement("input");
+ myTemporaryInputElement.type = "text";
+ myTemporaryInputElement.value = textToCopy;
+
+ document.body.appendChild(myTemporaryInputElement);
+
+ myTemporaryInputElement.select();
+ document.execCommand("Copy");
+
+ document.body.removeChild(myTemporaryInputElement);
+}
+
+
+function sharepopup() {
+Notiflix.Report.Success('Partager le plan', 'Copier et coller le lien suivant pour partager le plan ou cliquer <a href="#" onclick="copyText()">ici</a>. '+window.location.href)
+}
 //
 // usefull to set the view to a search result
 //
