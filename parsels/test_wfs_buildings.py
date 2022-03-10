@@ -24,7 +24,7 @@ loadedResults = 0
 globalfeatures = None
 while (loadedResults<totalResults):
 
-    response = wfs11.getfeature(typename='BDTOPO_V3:batiment',
+    response = wfs11.getfeature(typename='CADASTRALPARCELS.PARCELLAIRE_EXPRESS:localisant',
                             bbox=(4.8363447189331055,45.75274517163593,4.8415718623437,45.75283716884888),outputFormat='application/json',
                             maxfeatures=mf,
                             startindex=loadedResults)

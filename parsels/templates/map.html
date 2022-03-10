@@ -72,10 +72,11 @@
     <div class="sidebar-tabs">
       <ul role="tablist">
         <li><a href="#list" role="tab"><i class="far fa-compass"></i></a></li>
+        <li><a href="#"  onclick="load_parcelles('parcels')"  role="button"><i class="fas fa-vector-square"></i></a></li>
+        <li><a  href="#"  onclick="load_parcelles('buildings')"  role="button"><i class="fas fa-building"></i></a></li>
 
         <li><a href="#search" role="tab"><i class="fa fa-list"></i></a></li>
-        <!-- <li><a href="#plan" role="tab"><i class="fas fa-map-pin"></i></a></li> -->
-        <!-- <li><a href="#" role="button"><i class="fas fa-save"></i></a></li> -->
+
       </ul>
 
       <ul role="tablist">
@@ -92,7 +93,7 @@
         <div class="sidebar-pane" id="list">
           <h1 class="sidebar-header">
             Parcelles
-            <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+            <span class="sidebar-close"><i class="fas fa-times"></i></span>
           </h1>
           <p>Parcelle.app permet de partager facilement des extraits du cadastre. Commencez par rentrer l'adresse du bien immobilier :</p>
                 <div id="ac_location">
@@ -127,12 +128,12 @@
         <div class="sidebar-pane" id="search">
           <h1 class="sidebar-header">
             Listing
-            <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+            <span class="sidebar-close"><i class="fas fa-times"></i></span>
           </h1>
           <p>Ensuite vous décidez si vous voulez charger des parcelles ou des bâtiments : </p>
 
-            <a class="btn btn btn-light" href="#"  onclick="load_parcelles('parcels')"  role="button"><i class="fas fa-vector-square"></i> Charger les Parcelles</a></li>
-            <a class="btn btn btn-light" href="#"  onclick="load_parcelles('buildings')"  role="button"><i class="fas fa-building"></i> Charger les Bâtiments</a></li>
+            <!-- <a class="btn btn btn-light" href="#"  onclick="load_parcelles('parcels')"  role="button"><i class="fas fa-vector-square"></i> Charger les Parcelles</a></li>
+            <a class="btn btn btn-light" href="#"  onclick="load_parcelles('buildings')"  role="button"><i class="fas fa-building"></i> Charger les Bâtiments</a></li> -->
           <div id="v_v_list">
             <h2>Selection</h2>
             <p>Ici apparaissent les élements que vous avez selectionnés</p>
@@ -141,7 +142,7 @@
             v-for="parcel in parcels_map"
             v-bind:key="parcel.id"
             v-bind:parcel="parcel"
-            v-on:mouse-click="p_select($event)"
+            v-on:mouse-click="p_select($event,true)"
             v-on:mouse-on="p_style_highlight($event)"
             v-on:mouse-off="p_style_restore($event)"
             v-on:action-click="p_remove($event)"
@@ -185,6 +186,7 @@
 
   <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
   <script src="{{ url_for('static', filename='js/leaflet-sidebar.js') }}"></script>
+
   <script src="https://kit.fontawesome.com/6ea147b44a.js" crossorigin="anonymous"></script>
   <script src="{{ url_for('static', filename='js/util_refactor.js') }}"></script>
 
@@ -201,32 +203,53 @@ Vue.filter('format_batiment_id', function (value) { return format_batiment_id(va
 Vue.component('parcel-list', {
   props: ['parcel'],
   template: `
-    <div class="list-group-item" v-on:click="$emit('mouse-click', parcel.id  )" v-on:mouseover="$emit('mouse-on', parcel.id  )"    v-on:mouseleave="$emit('mouse-off', parcel.id  )">
+    <div class="list-group-item" v-on:click="$emit('mouse-click', parcel.id)" v-on:mouseover="$emit('mouse-on', parcel.id  )"    v-on:mouseleave="$emit('mouse-off', parcel.id  )">
     <div class="d-flex w-100 justify-content-between">
       <h5 v-if="parcel.properties.a_type.charAt(0) === 'p'" class="mb-1"><i class="fas fa-vector-square"></i> [[ parcel.properties.section ]] [[ parcel.properties.numero ]]</h5>
       <h5 v-else-if="parcel.properties.a_type === 'b0'" class="mb-1"><i class="far fa-building"></i> [[ parcel.id  | format_batiment_id ]]</h5>
       <h5 v-else class="mb-1"><i class="fas fa-campground"></i>bâtiment léger</h5>
-          <button type="button" class="btn-close" aria-label="Close" v-on:click="$emit('action-click', parcel.id  )"></button>
+          <button v-if="parcel.properties._selected === true" type="button" class="btn-close" aria-label="Close" v-on:click="$emit('action-click', parcel.id  )"></button>
+          <a  v-else type="button"  aria-label="Close" v-on:click="$emit('action-click', parcel.id  )"><i class="far fa-plus-square"></i></a>
+
     </div>
     <p class="mb-1" v-if="parcel.properties.a_type.charAt(0) === 'p'">[[ parcel.properties.nom_com ]]</p>
-    <p class="mb-1" v-else>[[ parcel.properties.code_insee ]]</p>
-    <p>
-    <small v-if="parcel.properties.a_type.charAt(0) === 'p'">[[ parcel.properties.id ]]</small>
-    <small v-else>[[ parcel.properties.type ]]</small>
-
-  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'p'">[[ parcel.properties.contenance | geometre ]]</small>
-  <small class="badge bg-dark rounded-pill" v-else>[[ parcel.properties.contenance | geometre_building ]]</small>
-
-  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">hauteur [[ parcel.properties.hauteur ]] m</small>
-  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Etages [[ parcel.properties.nombre_d_etages ]]</small>
-  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Logements [[ parcel.properties.nombre_de_logements ]]</small>
-  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Usage principal [[ parcel.properties.usage_1 ]]</small>
-  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Usage secondaire [[ parcel.properties.usage_2 ]]</small>
-  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Date Apparition [[ parcel.properties.date_d_apparition ]]</small>
-
-</p>  </div>
+    <p class="mb-1" v-else>[[ parcel.properties.usage_1 ]]</p>
+    </div>
   `
 })
+
+
+// Vue.component('parcel-list', {
+//   props: ['parcel'],
+//   template: `
+//     <div class="list-group-item" v-on:click="$emit('mouse-click', parcel.id  )" v-on:mouseover="$emit('mouse-on', parcel.id  )"    v-on:mouseleave="$emit('mouse-off', parcel.id  )">
+//     <div class="d-flex w-100 justify-content-between">
+//       <h5 v-if="parcel.properties.a_type.charAt(0) === 'p'" class="mb-1"><i class="fas fa-vector-square"></i> [[ parcel.properties.section ]] [[ parcel.properties.numero ]]</h5>
+//       <h5 v-else-if="parcel.properties.a_type === 'b0'" class="mb-1"><i class="far fa-building"></i> [[ parcel.id  | format_batiment_id ]]</h5>
+//       <h5 v-else class="mb-1"><i class="fas fa-campground"></i>bâtiment léger</h5>
+//           <button v-if="parcel.properties._selected === true" type="button" class="btn-close" aria-label="Close" v-on:click="$emit('action-click', parcel.id  )"></button>
+//           <a  v-else type="button"  aria-label="Close" v-on:click="$emit('action-click', parcel.id  )"><i class="far fa-plus-square"></i></a>
+//
+//     </div>
+//     <p class="mb-1" v-if="parcel.properties.a_type.charAt(0) === 'p'">[[ parcel.properties.nom_com ]]</p>
+//     <p class="mb-1" v-else>[[ parcel.properties.code_insee ]]</p>
+//     <p>
+//     <small v-if="parcel.properties.a_type.charAt(0) === 'p'">[[ parcel.properties.id ]]</small>
+//     <small v-else>[[ parcel.properties.type ]]</small>
+//
+//   <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'p'">[[ parcel.properties.contenance | geometre ]]</small>
+//   <small class="badge bg-dark rounded-pill" v-else>[[ parcel.properties.contenance | geometre_building ]]</small>
+//
+//   <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">hauteur [[ parcel.properties.hauteur ]] m</small>
+//   <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Etages [[ parcel.properties.nombre_d_etages ]]</small>
+//   <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Logements [[ parcel.properties.nombre_de_logements ]]</small>
+//   <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Usage principal [[ parcel.properties.usage_1 ]]</small>
+//   <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Usage secondaire [[ parcel.properties.usage_2 ]]</small>
+//   <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Date Apparition [[ parcel.properties.date_d_apparition ]]</small>
+//
+// </p>  </div>
+//   `
+// })
 
 Vue.component('building-list', {
   props: ['building'],
@@ -365,8 +388,9 @@ ac =  new Vue({
 
 
   var mymap = L.map('mapid', {   attributionControl: false, zoomControl: false});
-  var sidebar = L.control.sidebar('sidebar', {position: 'left'}).addTo(mymap);
 
+
+  var sidebar = L.control.sidebar('sidebar', {position: 'left'}).addTo(mymap);
 
   L.Control.Watermark = L.Control.extend({
     onAdd: function(map) {
@@ -610,8 +634,12 @@ var v_parcels =  new Vue({
             this.backdoor++
             parcel_add_to_map(element)
         },
-        p_select : function(element) {
+        p_select : function(element, center = false) {
+
             toggleActive(element)
+            if (center) {
+              mymap.flyToBounds( v_parcels.parcels[element].layer.getBounds() )
+            }
         },
         p_style_restore : function(element) {
           style_restore(element)
@@ -842,6 +870,7 @@ function toggleActive(id) {
 function formatdetails(id){
   str = '' ;
   Object.keys(v_parcels.parcels[id].properties).forEach(element =>  { value = v_parcels.parcels[id].properties[element] ; if (value != '')  { str += element +' '+value+"<br>" } }  )
+  str += dmatto[v_parcels.parcels[id].properties['materiaux_de_la_toiture']]
   return str
 }
 
