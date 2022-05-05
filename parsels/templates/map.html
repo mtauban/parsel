@@ -121,7 +121,6 @@
                       <p class="form-label">Longitude :</p> <input class="form-control" v-on:change="updateLoc" v-model="lon">
                       <p class="form-label">Zoom :</p> <input type="range" class="form-range" min="6" max="20" step="1" v-on:change="updateLoc" v-model="zl">
                       </div>
-
         </div>
 
 
@@ -130,14 +129,14 @@
             Listing
             <span class="sidebar-close"><i class="fas fa-times"></i></span>
           </h1>
-          <p>Ensuite vous décidez si vous voulez charger des parcelles ou des bâtiments : </p>
+          <p>Ensuite vous décidez si vous voulez charger des parcelles ou des bâtiments :  </p>
 
-            <!-- <a class="btn btn btn-light" href="#"  onclick="load_parcelles('parcels')"  role="button"><i class="fas fa-vector-square"></i> Charger les Parcelles</a></li>
-            <a class="btn btn btn-light" href="#"  onclick="load_parcelles('buildings')"  role="button"><i class="fas fa-building"></i> Charger les Bâtiments</a></li> -->
+             <a class="btn btn btn-light" href="#"  onclick="load_parcelles('parcels')"  role="button"><i class="fas fa-vector-square"></i> Charger les Parcelles</a></li>
+            <a class="btn btn btn-light" href="#"  onclick="load_parcelles('buildings')"  role="button"><i class="fas fa-building"></i> Charger les Bâtiments</a></li>
           <div id="v_v_list">
             <h2>Selection</h2>
-            <p>Ici apparaissent les élements que vous avez selectionnés (total: [[ contenance ]])</p>
-            <div class="list-group">
+            <p>Ici apparaissent les élements que vous avez selectionnés</p>
+            <p>Surface totale : [[ contenance ]] m2</p>
             <parcel-list
             v-for="parcel in parcels_map"
             v-bind:key="parcel.id"
@@ -604,7 +603,7 @@ var v_parcels =  new Vue({
                 contenance += parcel.properties.contenance
               }
           });
-          return contenance
+          return contenance.toFixed(0)
       },
       ids : function() {
         this.backdoor;
@@ -657,10 +656,10 @@ function load_parcelles(p = "parcels") {
     console.log('too far to ask ign')
     return
   }
-  bbox = mymap.getBounds()
-  Notiflix.Loading.Custom('Chargement ...');
-    api_full_url = "/api/ign/get-"+p+"-boundingbox/"+bbox._southWest.lat+"/"+bbox._southWest.lng+"/"+bbox._northEast.lat+"/"+bbox._northEast.lng ,
-    fetch(api_full_url)
+    bbox = mymap.getBounds()
+    Notiflix.Loading.Custom('Chargement ...');
+      api_full_url = "/api/ign/get-"+p+"-boundingbox/"+bbox._southWest.lat+"/"+bbox._southWest.lng+"/"+bbox._northEast.lat+"/"+bbox._northEast.lng ,
+      fetch(api_full_url)
     .then(function(response) {
       if(response.ok)
       {
