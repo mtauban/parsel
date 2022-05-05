@@ -209,11 +209,20 @@ Vue.component('parcel-list', {
       <h5 v-else class="mb-1"><i class="fas fa-campground"></i>bâtiment léger</h5>
           <button v-if="parcel.properties._selected === true" type="button" class="btn-close" aria-label="Close" v-on:click="$emit('action-click', parcel.id  )"></button>
           <a  v-else type="button"  aria-label="Close" v-on:click="$emit('action-click', parcel.id  )"><i class="far fa-plus-square"></i></a>
-
     </div>
     <p class="mb-1" v-if="parcel.properties.a_type.charAt(0) === 'p'">[[ parcel.properties.nom_com ]]</p>
     <p class="mb-1" v-else>[[ parcel.properties.usage_1 ]]</p>
-    </div>
+  <p>
+  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'p'">[[ parcel.properties.contenance | geometre ]]</small>
+  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">[[ parcel.properties.contenance | geometre_building ]]</small>
+
+   <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">hauteur [[ parcel.properties.hauteur ]] m</small>
+      <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Etages [[ parcel.properties.nombre_d_etages ]]</small>
+      <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Logements [[ parcel.properties.nombre_de_logements ]]</small>
+      <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Usage principal [[ parcel.properties.usage_1 ]]</small>
+      <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Usage secondaire [[ parcel.properties.usage_2 ]]</small>
+      <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Date Apparition [[ parcel.properties.date_d_apparition ]]</small>
+</p>  </div>
   `
 })
 
@@ -869,7 +878,7 @@ function toggleActive(id) {
 function formatdetails(id){
   str = '' ;
   Object.keys(v_parcels.parcels[id].properties).forEach(element =>  { value = v_parcels.parcels[id].properties[element] ; if (value != '')  { str += element +' '+value+"<br>" } }  )
-  str += dmatto[v_parcels.parcels[id].properties['materiaux_de_la_toiture']]
+  str += '<br />materiaux_de_la_toiture : ' + dmatto[v_parcels.parcels[id].properties['materiaux_de_la_toiture']] + '<br />'
   return str
 }
 
