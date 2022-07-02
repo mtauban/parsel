@@ -55,7 +55,7 @@
   .autocomplete-result.is-active,
   .autocomplete-result:hover {
     background-color: #000;
-        color: white;
+    color: white;
   }
 
 
@@ -85,112 +85,112 @@
         <li><a href="#" onclick="sharepopup()" role="button"><i class="far fa-share-square"></i></a></li>
         <li><a href="#"  onclick="toggleSatellite()"  role="button"><i class="fas fa-layer-group"></i></a></li>
         <!-- <li><a href="{{ url_for('map_list')}}" role="tab"><i class="fa fa-times"></i></a> -->
-        </ul>
-      </div>
+      </ul>
+    </div>
 
-      <!-- Tab panes -->
-      <div class="sidebar-content">
-        <div class="sidebar-pane" id="list">
-          <h1 class="sidebar-header">
-            Parcelles
-            <span class="sidebar-close"><i class="fas fa-times"></i></span>
-          </h1>
-          <p>Parcelle.app permet de partager facilement des extraits du cadastre. Commencez par rentrer l'adresse du bien immobilier :</p>
-                <div id="ac_location">
+    <!-- Tab panes -->
+    <div class="sidebar-content">
+      <div class="sidebar-pane" id="list">
+        <h1 class="sidebar-header">
+          Parcelles
+          <span class="sidebar-close"><i class="fas fa-times"></i></span>
+        </h1>
+        <p>Parcelle.app permet de partager facilement des extraits du cadastre. Commencez par rentrer l'adresse du bien immobilier :</p>
+        <div id="ac_location">
           <div class="autocomplete">
-              <!-- <h2>Recherche:</h2> -->
+            <!-- <h2>Recherche:</h2> -->
             <input id="search_input" placeholder="117 Rue Cuvier, Lyon" class="form-control" type="text" v-model="search" @keyup="inputChanged" @keydown.down="onArrow" @keydown.up="onArrow" />
             <ul                  v-show="isOpen"
             class="autocomplete-results">
-              <li
-                v-for="(f, i) in features"
-                :key="i"
-                class="autocomplete-result"
-                :class="{ 'is-active': i === arrowCounter }"
-                @click="setResult(i)"
-                >
-                [[ f.properties.label ]]
-              </li>
-            </ul>
-          </div>
-                </div>
-                <div id="location" class="mb-3">
-                      <h2>Coordonnées</h2>
-                      <p>[[ location_postcode ]] [[ location_city ]] ([[ location_citycode ]])</p>
-                      <p class="form-label">Latitude :</p>  <input class="form-control" v-on:change="updateLoc" v-model="lat">
-                      <p class="form-label">Longitude :</p> <input class="form-control" v-on:change="updateLoc" v-model="lon">
-                      <p class="form-label">Zoom :</p> <input type="range" class="form-range" min="6" max="20" step="1" v-on:change="updateLoc" v-model="zl">
-                      </div>
-        </div>
-
-
-        <div class="sidebar-pane" id="search">
-          <h1 class="sidebar-header">
-            Listing
-            <span class="sidebar-close"><i class="fas fa-times"></i></span>
-          </h1>
-          <p>Ensuite vous décidez si vous voulez charger des parcelles ou des bâtiments :  </p>
-
-             <a class="btn btn btn-light" href="#"  onclick="load_parcelles('parcels')"  role="button"><i class="fas fa-vector-square"></i> Charger les Parcelles</a></li>
-            <a class="btn btn btn-light" href="#"  onclick="load_parcelles('buildings')"  role="button"><i class="fas fa-building"></i> Charger les Bâtiments</a></li>
-          <div id="v_v_list">
-            <h2>Selection</h2>
-            <p>Ici apparaissent les élements que vous avez selectionnés</p>
-            <p>Surface totale : [[ contenance ]] m2</p>
-            <parcel-list
-            v-for="parcel in parcels_map"
-            v-bind:key="parcel.id"
-            v-bind:parcel="parcel"
-            v-on:mouse-click="p_select($event,true)"
-            v-on:mouse-on="p_style_highlight($event)"
-            v-on:mouse-off="p_style_restore($event)"
-            v-on:action-click="p_remove($event)"
-            ></parcel-list>
-            </div>
-            <h2>Toutes</h2>
-
-            <p>Ici apparaissent tous les élements que vous avez chargés</p>
-            <div class="list-group">
-            <parcel-list
-            v-for="parcel in parcels_search"
-            v-bind:key="parcel.id"
-            v-bind:parcel="parcel"
-            v-on:mouse-click="p_select($event)"
-            v-on:mouse-on="p_style_highlight($event)"
-            v-on:mouse-off="p_style_restore($event)"
-            v-on:action-click="p_add($event)"
-            ></parcel-list>
-          </div>
-
-          </div>
-        </div>
-
-        <!-- <div class="sidebar-pane" id="plan">
-          <h1 class="sidebar-header">
-            Plan
-            <span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
-          </h1>
-          <div id="v_v_plan">
-          </div>
-        </div> -->
-
+            <li
+            v-for="(f, i) in features"
+            :key="i"
+            class="autocomplete-result"
+            :class="{ 'is-active': i === arrowCounter }"
+            @click="setResult(i)"
+            >
+            [[ f.properties.label ]]
+          </li>
+        </ul>
       </div>
     </div>
-
-    <div id="mapid" class="sidebar-map">
+    <div id="location" class="mb-3">
+      <h2>Coordonnées</h2>
+      <p>[[ location_postcode ]] [[ location_city ]] ([[ location_citycode ]])</p>
+      <p class="form-label">Latitude :</p>  <input class="form-control" v-on:change="updateLoc" v-model="lat">
+      <p class="form-label">Longitude :</p> <input class="form-control" v-on:change="updateLoc" v-model="lon">
+      <p class="form-label">Zoom :</p> <input type="range" class="form-range" min="6" max="20" step="1" v-on:change="updateLoc" v-model="zl">
     </div>
-  </body>
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
-  <script src="{{ url_for('static', filename='js/notiflix-2.6.0.min.js') }}"></script>
+  </div>
 
-  <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
-  <script src="{{ url_for('static', filename='js/leaflet-sidebar.js') }}"></script>
 
-  <script src="https://kit.fontawesome.com/6ea147b44a.js" crossorigin="anonymous"></script>
-  <script src="{{ url_for('static', filename='js/util_refactor.js') }}"></script>
+  <div class="sidebar-pane" id="search">
+    <h1 class="sidebar-header">
+      Listing
+      <span class="sidebar-close"><i class="fas fa-times"></i></span>
+    </h1>
+    <p>Ensuite vous décidez si vous voulez charger des parcelles ou des bâtiments :  </p>
 
-  <script>
-  Vue.options.delimiters = ['[[', ']]'];
+    <a class="btn btn btn-light" href="#"  onclick="load_parcelles('parcels')"  role="button"><i class="fas fa-vector-square"></i> Charger les Parcelles</a></li>
+    <a class="btn btn btn-light" href="#"  onclick="load_parcelles('buildings')"  role="button"><i class="fas fa-building"></i> Charger les Bâtiments</a></li>
+    <div id="v_v_list">
+      <h2>Selection</h2>
+      <p>Ici apparaissent les élements que vous avez selectionnés</p>
+      <p>Surface totale : [[ contenance ]] m2</p>
+      <parcel-list
+      v-for="parcel in parcels_map"
+      v-bind:key="parcel.id"
+      v-bind:parcel="parcel"
+      v-on:mouse-click="p_select($event,true)"
+      v-on:mouse-on="p_style_highlight($event)"
+      v-on:mouse-off="p_style_restore($event)"
+      v-on:action-click="p_remove($event)"
+      ></parcel-list>
+    </div>
+    <h2>Toutes</h2>
+
+    <p>Ici apparaissent tous les élements que vous avez chargés</p>
+    <div class="list-group">
+      <parcel-list
+      v-for="parcel in parcels_search"
+      v-bind:key="parcel.id"
+      v-bind:parcel="parcel"
+      v-on:mouse-click="p_select($event)"
+      v-on:mouse-on="p_style_highlight($event)"
+      v-on:mouse-off="p_style_restore($event)"
+      v-on:action-click="p_add($event)"
+      ></parcel-list>
+    </div>
+
+  </div>
+</div>
+
+<!-- <div class="sidebar-pane" id="plan">
+<h1 class="sidebar-header">
+Plan
+<span class="sidebar-close"><i class="fa fa-caret-left"></i></span>
+</h1>
+<div id="v_v_plan">
+</div>
+</div> -->
+
+</div>
+</div>
+
+<div id="mapid" class="sidebar-map">
+</div>
+</body>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0-beta2/dist/js/bootstrap.bundle.min.js" integrity="sha384-b5kHyXgcpbZJO/tY9Ul7kGkf1S0CWuKcCD38l8YkeH8z8QjE0GmW1gYU5S9FOnJ0" crossorigin="anonymous"></script>
+<script src="{{ url_for('static', filename='js/notiflix-2.6.0.min.js') }}"></script>
+
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js" integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA==" crossorigin=""></script>
+<script src="{{ url_for('static', filename='js/leaflet-sidebar.js') }}"></script>
+
+<script src="https://kit.fontawesome.com/6ea147b44a.js" crossorigin="anonymous"></script>
+<script src="{{ url_for('static', filename='js/util_refactor.js') }}"></script>
+
+<script>
+Vue.options.delimiters = ['[[', ']]'];
 
 Vue.filter('geometre', function (value) { return contenance_format(value)  })
 Vue.filter('geometre_building', function (value) { return contenance_format_building(value)  })
@@ -202,27 +202,27 @@ Vue.filter('format_batiment_id', function (value) { return format_batiment_id(va
 Vue.component('parcel-list', {
   props: ['parcel'],
   template: `
-    <div class="list-group-item" v-on:click="$emit('mouse-click', parcel.id)" v-on:mouseover="$emit('mouse-on', parcel.id  )"    v-on:mouseleave="$emit('mouse-off', parcel.id  )">
-    <div class="d-flex w-100 justify-content-between">
-      <h5 v-if="parcel.properties.a_type.charAt(0) === 'p'" class="mb-1"><i class="fas fa-vector-square"></i> [[ parcel.properties.section ]] [[ parcel.properties.numero ]]</h5>
-      <h5 v-else-if="parcel.properties.a_type === 'b0'" class="mb-1"><i class="far fa-building"></i> [[ parcel.id  | format_batiment_id ]]</h5>
-      <h5 v-else class="mb-1"><i class="fas fa-campground"></i>bâtiment léger</h5>
-          <button v-if="parcel.properties._selected === true" type="button" class="btn-close" aria-label="Close" v-on:click="$emit('action-click', parcel.id  )"></button>
-          <a  v-else type="button"  aria-label="Close" v-on:click="$emit('action-click', parcel.id  )"><i class="far fa-plus-square"></i></a>
-    </div>
-    <p class="mb-1" v-if="parcel.properties.a_type.charAt(0) === 'p'">[[ parcel.properties.nom_com ]]</p>
-    <p class="mb-1" v-else>[[ parcel.properties.usage_1 ]]</p>
+  <div class="list-group-item" v-on:click="$emit('mouse-click', parcel.id)" v-on:mouseover="$emit('mouse-on', parcel.id  )"    v-on:mouseleave="$emit('mouse-off', parcel.id  )">
+  <div class="d-flex w-100 justify-content-between">
+  <h5 v-if="parcel.properties.a_type.charAt(0) === 'p'" class="mb-1"><i class="fas fa-vector-square"></i> [[ parcel.properties.section ]] [[ parcel.properties.numero ]]</h5>
+  <h5 v-else-if="parcel.properties.a_type === 'b0'" class="mb-1"><i class="far fa-building"></i> [[ parcel.id  | format_batiment_id ]]</h5>
+  <h5 v-else class="mb-1"><i class="fas fa-campground"></i>bâtiment léger</h5>
+  <button v-if="parcel.properties._selected === true" type="button" class="btn-close" aria-label="Close" v-on:click="$emit('action-click', parcel.id  )"></button>
+  <a  v-else type="button"  aria-label="Close" v-on:click="$emit('action-click', parcel.id  )"><i class="far fa-plus-square"></i></a>
+  </div>
+  <p class="mb-1" v-if="parcel.properties.a_type.charAt(0) === 'p'">[[ parcel.properties.nom_com ]]</p>
+  <p class="mb-1" v-else>[[ parcel.properties.usage_1 ]]</p>
   <p>
   <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'p'">[[ parcel.properties.contenance | geometre ]]</small>
   <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">[[ parcel.properties.contenance | geometre_building ]]</small>
 
-   <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">hauteur [[ parcel.properties.hauteur ]] m</small>
-      <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Etages [[ parcel.properties.nombre_d_etages ]]</small>
-      <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Logements [[ parcel.properties.nombre_de_logements ]]</small>
-      <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Usage principal [[ parcel.properties.usage_1 ]]</small>
-      <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Usage secondaire [[ parcel.properties.usage_2 ]]</small>
-      <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Date Apparition [[ parcel.properties.date_d_apparition ]]</small>
-</p>  </div>
+  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">hauteur [[ parcel.properties.hauteur ]] m</small>
+  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Etages [[ parcel.properties.nombre_d_etages ]]</small>
+  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Logements [[ parcel.properties.nombre_de_logements ]]</small>
+  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Usage principal [[ parcel.properties.usage_1 ]]</small>
+  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Usage secondaire [[ parcel.properties.usage_2 ]]</small>
+  <small class="badge bg-dark rounded-pill" v-if="parcel.properties.a_type.charAt(0) === 'b'">Date Apparition [[ parcel.properties.date_d_apparition ]]</small>
+  </p>  </div>
   `
 })
 
@@ -262,223 +262,223 @@ Vue.component('parcel-list', {
 Vue.component('building-list', {
   props: ['building'],
   template: `
-    <div class="list-group-item" v-on:click="$emit('mouse-click', building.id  )" v-on:mouseover="$emit('mouse-on', building.id  )"    v-on:mouseleave="$emit('mouse-off', building.id  )">
-    <div class="d-flex w-100 justify-content-between">
-      <h5 class="mb-1">[[ building.id ]] [[ building.properties.code_insee ]]</h5>
-          <button type="button" class="btn-close" aria-label="Close" v-on:click="$emit('action-click', building.id  )"></button>
-    </div>
-    <p class="mb-1">[[ building.properties.type ]]</p>
-    <div class="d-flex w-100 justify-content-between">
-    <small>[[ building.id ]]</small>
+  <div class="list-group-item" v-on:click="$emit('mouse-click', building.id  )" v-on:mouseover="$emit('mouse-on', building.id  )"    v-on:mouseleave="$emit('mouse-off', building.id  )">
+  <div class="d-flex w-100 justify-content-between">
+  <h5 class="mb-1">[[ building.id ]] [[ building.properties.code_insee ]]</h5>
+  <button type="button" class="btn-close" aria-label="Close" v-on:click="$emit('action-click', building.id  )"></button>
+  </div>
+  <p class="mb-1">[[ building.properties.type ]]</p>
+  <div class="d-flex w-100 justify-content-between">
+  <small>[[ building.id ]]</small>
   <small class="badge bg-dark rounded-pill">[[ building.properties.contenance  | geometre_building ]]</small>
   </div>
   </div>
   `
 })
 
-  var vm = new Vue({
-    el: '#location',
-    data: {
-      lat: 45.764043,
-      lon: 4.835659,
-      zl: 5,
-      location_city : '',
-      location_citycode : '',
-      location_postcode : '',
+var vm = new Vue({
+  el: '#location',
+  data: {
+    lat: 45.764043,
+    lon: 4.835659,
+    zl: 5,
+    location_city : '',
+    location_citycode : '',
+    location_postcode : '',
+  },
+  methods: {
+    updateLoc : function (event) {
+      mymap.setView([vm.lat,vm.lon], vm.zl)
+    }
+  },
+  delimiters: ['[[',']]']
+
+})
+
+function fetchLocation() {
+  url = "https://api-adresse.data.gouv.fr/reverse/?lon="+vm.lon+"&lat="+vm.lat
+  fetch(url)
+  .then(function(response) {
+    return response.json();
+  })
+  .then(function(jsonResponse) {
+    if(jsonResponse["features"].length ==0) {
+      return
+    }
+    vm.location_city =  jsonResponse["features"][0]["properties"]["city"]
+    vm.location_citycode =  jsonResponse["features"][0]["properties"]["citycode"]
+    vm.location_postcode =  jsonResponse["features"][0]["properties"]["postcode"]
+    document.title = "Parcelle.app - " + vm.location_city
+  });
+}
+
+
+ac =  new Vue({
+  el: "#ac_location",
+  data: {
+    features : [],
+    search: '',
+    arrowCounter: -1,
+    isOpen: false,
+  },
+  methods: {
+    setResult(index) {
+      if ((this.features.length == 0) || (index == -1)){ // we can't do nothing because nothing is available
+
+      }
+      // console.log(this.features[index].properties.label)
+      loadmarkerandcenter(this.features[index])
+      this.features = []
+
     },
-    methods: {
-      updateLoc : function (event) {
-        mymap.setView([vm.lat,vm.lon], vm.zl)
+
+    onArrow(event) {
+
+      if (this.features.length > 0) {
+        this.arrowCounter = event.code == "ArrowDown" ? ++this.arrowCounter : --this.arrowCounter;
+        if (this.arrowCounter >= this.features.length)
+        this.arrowCounter = (this.arrowCounter) % this.features.length;
+        else if (this.arrowCounter < 0)
+        this.arrowCounter = this.features.length + this.arrowCounter;
       }
     },
-    delimiters: ['[[',']]']
 
-  })
+    inputChanged(event) {
 
-  function fetchLocation() {
-    url = "https://api-adresse.data.gouv.fr/reverse/?lon="+vm.lon+"&lat="+vm.lat
-    fetch(url)
+      if (event.code == "ArrowUp" || event.code == "ArrowDown")
+      return;
+
+      if (event.code == "Enter") {
+        this.setResult(this.arrowCounter)
+        return
+      }
+
+
+      if (this.search.length<3) {
+        this.isOpen = false
+        return
+
+      }
+      this.isOpen = true
+
+      var api_url = "https://api-adresse.data.gouv.fr/search/"
+      var api_params =  { limit : 8, autocomplete : 1, q : this.search , lat : mymap.getCenter().lat , lon :  mymap.getCenter().lng},
+      api_data = Object.keys(api_params).map(
+        function(k){ return encodeURIComponent(k) + '=' + encodeURIComponent(api_params[k]) }
+      ).join('&');
+      api_full_url = (api_url+"?"+api_data)
+      fetch(api_full_url)
       .then(function(response) {
         return response.json();
       })
       .then(function(jsonResponse) {
-        if(jsonResponse["features"].length ==0) {
-          return
-        }
-        vm.location_city =  jsonResponse["features"][0]["properties"]["city"]
-        vm.location_citycode =  jsonResponse["features"][0]["properties"]["citycode"]
-        vm.location_postcode =  jsonResponse["features"][0]["properties"]["postcode"]
-        document.title = "Parcelle.app - " + vm.location_city
-      });
-  }
-
-
-ac =  new Vue({
-    el: "#ac_location",
-    data: {
-      features : [],
-      search: '',
-      arrowCounter: -1,
-      isOpen: false,
-    },
-    methods: {
-      setResult(index) {
-        if ((this.features.length == 0) || (index == -1)){ // we can't do nothing because nothing is available
-
-        }
-        // console.log(this.features[index].properties.label)
-        loadmarkerandcenter(this.features[index])
-        this.features = []
-
-      },
-
-      onArrow(event) {
-
-        if (this.features.length > 0) {
-          this.arrowCounter = event.code == "ArrowDown" ? ++this.arrowCounter : --this.arrowCounter;
-          if (this.arrowCounter >= this.features.length)
-            this.arrowCounter = (this.arrowCounter) % this.features.length;
-          else if (this.arrowCounter < 0)
-            this.arrowCounter = this.features.length + this.arrowCounter;
-        }
-      },
-
-      inputChanged(event) {
-
-        if (event.code == "ArrowUp" || event.code == "ArrowDown")
-          return;
-
-        if (event.code == "Enter") {
-            this.setResult(this.arrowCounter)
-            return
-          }
-
-
-        if (this.search.length<3) {
-          this.isOpen = false
-          return
-
-        }
-        this.isOpen = true
-
-        var api_url = "https://api-adresse.data.gouv.fr/search/"
-        var api_params =  { limit : 8, autocomplete : 1, q : this.search , lat : mymap.getCenter().lat , lon :  mymap.getCenter().lng},
-        api_data = Object.keys(api_params).map(
-          function(k){ return encodeURIComponent(k) + '=' + encodeURIComponent(api_params[k]) }
-        ).join('&');
-        api_full_url = (api_url+"?"+api_data)
-        fetch(api_full_url)
-        .then(function(response) {
-          return response.json();
-        })
-        .then(function(jsonResponse) {
-          ac.features = []
-          jsonResponse.features.map(
-            function(item) {
-              if (item.properties.score < 0.6){
-                return;
-              }
-              ac.features.push(item)
+        ac.features = []
+        jsonResponse.features.map(
+          function(item) {
+            if (item.properties.score < 0.6){
+              return;
             }
-          )
-        })
+            ac.features.push(item)
+          }
+        )
+      })
 
 
-        // console.log(this.features)
-      }
+      // console.log(this.features)
     }
-  })
+  }
+})
 
 
-  //
-  // Map Initialization
-  //
+//
+// Map Initialization
+//
 
 
-  var mymap = L.map('mapid', {   attributionControl: false, zoomControl: false});
+var mymap = L.map('mapid', {   attributionControl: false, zoomControl: false});
 
 
-  var sidebar = L.control.sidebar('sidebar', {position: 'left'}).addTo(mymap);
+var sidebar = L.control.sidebar('sidebar', {position: 'left'}).addTo(mymap);
 
-  L.Control.Watermark = L.Control.extend({
-    onAdd: function(map) {
-      var div = L.DomUtil.create('div');
-      div.innerHTML = '<object width="50" height="50" id="micon" type="image/svg+xml" data="{{ url_for('static', filename='icon/path.svg') }}"></object>'
-      return div;
-    },
-    onRemove: function(map) {
-      // Nothing to do here
-    }
-  });
+L.Control.Watermark = L.Control.extend({
+  onAdd: function(map) {
+    var div = L.DomUtil.create('div');
+    div.innerHTML = '<object width="50" height="50" id="micon" type="image/svg+xml" data="{{ url_for('static', filename='icon/path.svg') }}"></object>'
+    return div;
+  },
+  onRemove: function(map) {
+    // Nothing to do here
+  }
+});
 
-  L.control.watermark = function(opts) {return new L.Control.Watermark(opts);}
-  L.control.watermark({ position: 'topright' }).addTo(mymap);
-  L.control.attribution({position: 'bottomright'}).addTo(mymap);
-  L.control.zoom({  position:'bottomright'}).addTo(mymap);
-
-
-
-  var osmLayer = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}{r}?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q', { // LIGNE 20
-    tileSize: 512,
-    zoomOffset: -1,
-    attribution: 'Mapbox',
-    maxZoom: 20,
-    minZoom:1
-  });
-  var satellite = false;
-  satellite_url = 'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}{r}.jpg90?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q'
-  var mapBoxLayer = L.tileLayer(satellite_url, { // LIGNE 20
-    attribution: 'Mapbox',
-    maxZoom: 20,
-    minZoom:1
-  });
-
-  var PlanLayerGroup = new L.FeatureGroup([],  { attribution: 'ign.fr'})
-  var SearchLayerGroup = new L.FeatureGroup([])
-  var BuildingsLayerGroup = new L.FeatureGroup([])
-
-  mymap.addLayer(osmLayer);
-  PlanLayerGroup.addTo(mymap)
-  SearchLayerGroup.addTo(mymap)
-  BuildingsLayerGroup.addTo(mymap)
-
-  // var baseMaps = {
-  //     "Rue": osmLayer,
-  //     "Satellite": mapBoxLayer
-  // };
-  //
-  // var overlayMaps = {
-  //     "Plan": PlanLayerGroup,
-  //     "Bâtiments": BuildingsLayerGroup,
-  //     "Parcelles" : SearchLayerGroup
-  // };
-  //
-  // L.control.layers(baseMaps, overlayMaps).addTo(mymap);
-  //
-
-
-  mymap.on("moveend", function () {
-    vm.lat = mymap.getCenter().lat
-    vm.lon = mymap.getCenter().lng
-    vm.zl = mymap.getZoom()
-    fetchLocation()
-    updatewindowhistory()
-  });
+L.control.watermark = function(opts) {return new L.Control.Watermark(opts);}
+L.control.watermark({ position: 'topright' }).addTo(mymap);
+L.control.attribution({position: 'bottomright'}).addTo(mymap);
+L.control.zoom({  position:'bottomright'}).addTo(mymap);
 
 
 
-  //
-  // End map init
-  //
-  //
+var osmLayer = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}{r}?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q', { // LIGNE 20
+  tileSize: 512,
+  zoomOffset: -1,
+  attribution: 'Mapbox',
+  maxZoom: 20,
+  minZoom:1
+});
+var satellite = false;
+satellite_url = 'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}{r}.jpg90?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q'
+var mapBoxLayer = L.tileLayer(satellite_url, { // LIGNE 20
+  attribution: 'Mapbox',
+  maxZoom: 20,
+  minZoom:1
+});
+
+var PlanLayerGroup = new L.FeatureGroup([],  { attribution: 'ign.fr'})
+var SearchLayerGroup = new L.FeatureGroup([])
+var BuildingsLayerGroup = new L.FeatureGroup([])
+
+mymap.addLayer(osmLayer);
+PlanLayerGroup.addTo(mymap)
+SearchLayerGroup.addTo(mymap)
+BuildingsLayerGroup.addTo(mymap)
+
+// var baseMaps = {
+//     "Rue": osmLayer,
+//     "Satellite": mapBoxLayer
+// };
+//
+// var overlayMaps = {
+//     "Plan": PlanLayerGroup,
+//     "Bâtiments": BuildingsLayerGroup,
+//     "Parcelles" : SearchLayerGroup
+// };
+//
+// L.control.layers(baseMaps, overlayMaps).addTo(mymap);
+//
+
+
+mymap.on("moveend", function () {
+  vm.lat = mymap.getCenter().lat
+  vm.lon = mymap.getCenter().lng
+  vm.zl = mymap.getZoom()
+  fetchLocation()
+  updatewindowhistory()
+});
+
+
+
+//
+// End map init
+//
+//
 
 //
 // Usefull things
 //
 
 function updatewindowhistory(){
-//  window.history.replaceState('', '', "/map/"+(mymap.getCenter().lat)+","+(mymap.getCenter().lng)+","+(mymap.getZoom())+","+v_plan.id+","+v_parcels.ids.join(':'))
-window.history.replaceState('', '', "/map/"+(mymap.getCenter().lat)+","+(mymap.getCenter().lng)+","+(mymap.getZoom())+",,"+v_parcels.ids.join(':'))
+  //  window.history.replaceState('', '', "/map/"+(mymap.getCenter().lat)+","+(mymap.getCenter().lng)+","+(mymap.getZoom())+","+v_plan.id+","+v_parcels.ids.join(':'))
+  window.history.replaceState('', '', "/map/"+(mymap.getCenter().lat)+","+(mymap.getCenter().lng)+","+(mymap.getZoom())+",,"+v_parcels.ids.join(':'))
 
 }
 
@@ -499,22 +499,22 @@ function toggleSatellite() {
 
 function copyText() {
   textToCopy = window.location.href ;
- var myTemporaryInputElement = document.createElement("input");
- myTemporaryInputElement.type = "text";
- myTemporaryInputElement.value = textToCopy;
+  var myTemporaryInputElement = document.createElement("input");
+  myTemporaryInputElement.type = "text";
+  myTemporaryInputElement.value = textToCopy;
 
- document.body.appendChild(myTemporaryInputElement);
+  document.body.appendChild(myTemporaryInputElement);
 
- myTemporaryInputElement.select();
- document.execCommand("Copy");
+  myTemporaryInputElement.select();
+  document.execCommand("Copy");
 
- document.body.removeChild(myTemporaryInputElement);
- Notiflix.Notify.Success('URL du plan dans le presse papier.')
+  document.body.removeChild(myTemporaryInputElement);
+  Notiflix.Notify.Success('URL du plan dans le presse papier.')
 }
 
 
 function sharepopup() {
-Notiflix.Report.Success('Partager le plan', 'Copier et coller l\'adresse de la page ou cliquez sur <a href="#" onclick="copyText()">ce lien</a> pour partager le plan. ')
+  Notiflix.Report.Success('Partager le plan', 'Copier et coller l\'adresse de la page ou cliquez sur <a href="#" onclick="copyText()">ce lien</a> pour partager le plan. ')
 }
 //
 // usefull to set the view to a search result
@@ -537,7 +537,7 @@ var zoombytype = {
 }
 function loadmarkerandcenter(geojson, defaultzoom = 14) {
 
-//   this.features[index].properties.label
+  //   this.features[index].properties.label
 
   if (search_marker != undefined) {
     mymap.removeLayer(search_marker)
@@ -556,119 +556,119 @@ function loadmarkerandcenter(geojson, defaultzoom = 14) {
     search_marker.addTo(mymap)
 
     console.log(geojson.properties.label)
-  //  document.getElementById("search_input").value =
+    //  document.getElementById("search_input").value =
     ac.search = geojson.properties.label
     sidebar.open('search')
   }
 
 
-//
-// load parcellesearc
-//
+  //
+  // load parcellesearc
+  //
 
 
-var activelayer = undefined ;
-// var v_plan =  new Vue({
-//     el: "#v_v_plan",
-//     data: {
-//       contenance : 0,
-//       parcels : {},
-//       activelayer : undefined ,
-//     },
-//     methods: {
-//       p_remove : function(element) {
-//           parcel_remove(element)
-//       },
-//       p_select : function(element) {
-//           toggleActive(element)
-//
-//       },
-//     }
-//   })
-//
-// var v_plan =  new Vue({
-//   el: "#v_v_plan",
-//   data: {
-//     id : '',
-//     properties : {
-//     title : '',
-//     }
-//   }
-// })
+  var activelayer = undefined ;
+  // var v_plan =  new Vue({
+  //     el: "#v_v_plan",
+  //     data: {
+  //       contenance : 0,
+  //       parcels : {},
+  //       activelayer : undefined ,
+  //     },
+  //     methods: {
+  //       p_remove : function(element) {
+  //           parcel_remove(element)
+  //       },
+  //       p_select : function(element) {
+  //           toggleActive(element)
+  //
+  //       },
+  //     }
+  //   })
+  //
+  // var v_plan =  new Vue({
+  //   el: "#v_v_plan",
+  //   data: {
+  //     id : '',
+  //     properties : {
+  //     title : '',
+  //     }
+  //   }
+  // })
 
-var v_parcels =  new Vue({
-      el: "#v_v_list",
-      data: {
-        parcels : {},
-        activelayer : undefined ,
-        backdoor : 0
-      },
-      computed: {
+  var v_parcels =  new Vue({
+    el: "#v_v_list",
+    data: {
+      parcels : {},
+      activelayer : undefined ,
+      backdoor : 0
+    },
+    computed: {
       contenance :  function () {
-          this.backdoor;
-          contenance = 0
-          Object.values(this.parcels).forEach((parcel, i) => {
-              if (parcel.properties._selected) {
-                contenance += parcel.properties.contenance
-              }
-          });
-          return contenance.toFixed(0)
+        this.backdoor;
+        contenance = 0
+        Object.values(this.parcels).forEach((parcel, i) => {
+          if (parcel.properties._selected) {
+            contenance += parcel.properties.contenance
+          }
+        });
+        return contenance.toFixed(0)
       },
       ids : function() {
         this.backdoor;
         ids = []
         Object.values(this.parcels).forEach((parcel, i) => {
-            if (parcel.properties._selected) {
-              ids.push(parcel.id)
-            }
+          if (parcel.properties._selected) {
+            ids.push(parcel.id)
+          }
         });
         return ids
       },
       parcels_map : function () {
-          this.backdoor // Use to force triger recomputation on change
-          return Object.values(this.parcels).filter( parcel => ((parcel.properties._selected == true) ) )
+        this.backdoor // Use to force triger recomputation on change
+        return Object.values(this.parcels).filter( parcel => ((parcel.properties._selected == true) ) )
       },
       parcels_search : function () {
         this.backdoor  // Use to force triger recomputation on change
         return Object.values(this.parcels).filter( parcel => ((parcel.properties._selected == false) ) )
       },
     },
-      methods: {
-        p_remove : function(element) {
-            this.backdoor++
-            parcel_remove(element)
-        },
-        p_add : function(element) {
-            this.backdoor++
-            parcel_add_to_map(element)
-        },
-        p_select : function(element, center = false) {
+    methods: {
+      p_remove : function(element) {
+        this.backdoor++
+        parcel_remove(element)
+      },
+      p_add : function(element) {
+        this.backdoor++
+        parcel_add_to_map(element)
+      },
+      p_select : function(element, center = false) {
 
-            toggleActive(element)
-            if (center) {
-              mymap.flyToBounds( v_parcels.parcels[element].layer.getBounds() )
-            }
-        },
-        p_style_restore : function(element) {
-          style_restore(element)
-        },
-        p_style_highlight: function(element) {
-          style_highlight(element)
+        toggleActive(element)
+        if (center) {
+          mymap.flyToBounds( v_parcels.parcels[element].layer.getBounds() )
         }
+      },
+      p_style_restore : function(element) {
+        style_restore(element)
+      },
+      p_style_highlight: function(element) {
+        style_highlight(element)
       }
-    })
+    }
+  })
 
 
-function load_parcelles(p = "parcels") {
-  if (mymap.getZoom()<16) {
+  function load_parcelles(p = "parcels") {
+    if (mymap.getZoom()<16) {
       Notiflix.Notify.Failure('La zone demandée est trop vaste et comporte un nombre trop important de parcelles.');
-    console.log('too far to ask ign')
-    return
-  }
+      console.log('too far to ask ign')
+      return
+    }
     bbox = mymap.getBounds()
     Notiflix.Loading.Custom('Chargement ...');
-      api_full_url = "/api/ign/get-"+p+"-boundingbox/"+bbox._southWest.lat+"/"+bbox._southWest.lng+"/"+bbox._northEast.lat+"/"+bbox._northEast.lng ,
-      fetch(api_full_url)
+    api_full_url = "/api/ign/get-"+p+"-boundingbox/"+bbox._southWest.lat+"/"+bbox._southWest.lng+"/"+bbox._northEast.lat+"/"+bbox._northEast.lng ,
+    fetch(api_full_url)
     .then(function(response) {
       if(response.ok)
       {
@@ -678,51 +678,51 @@ function load_parcelles(p = "parcels") {
       throw new Error(response.status);
     })
     .then(function(jsonResponse) {
-        Notiflix.Loading.Remove();
-        if (jsonResponse.numberMatched>jsonResponse.numberReturned) {
-          Notiflix.Notify.Warning("Chargement partiel de "+jsonResponse.numberReturned+"/"+jsonResponse.numberMatched+" parcelles. Connectez-vous pour en charger plus.");
-        }
-        storeGeoJSON(jsonResponse).forEach(function(element) {
+      Notiflix.Loading.Remove();
+      if (jsonResponse.numberMatched>jsonResponse.numberReturned) {
+        Notiflix.Notify.Warning("Chargement partiel de "+jsonResponse.numberReturned+"/"+jsonResponse.numberMatched+" parcelles. Connectez-vous pour en charger plus.");
+      }
+      storeGeoJSON(jsonResponse).forEach(function(element) {
         v_parcels.parcels[element].properties._selected = false
         addToTheLayer(element,(element.id == "parcels") ? SearchLayerGroup : BuildingsLayerGroup)
-        })
+      })
     })
     .catch(function(error) {                        // catch
       console.log('IGN Server not available', error);
       Notiflix.Report.Failure('Erreur IGN','Serveurs IGN non accessibles. <br /> Essayez dans quelques instants.','Ok');
     });
-}
-
-
-var loaders = 0
-
-
-
-/**
- * Loads from IGN parcelles and batiments whose id are in array ids
- *
- * @param {array} ids
- * @return {}
- */
-function load_parcelles_from_ids(ids) {
-  // We may received ids that are already loaded
-  f_ids = []  // So we create the f_ids that will contain only the ids that are not already loaded
-  ids.forEach(function(p) {
-    if (Object.keys(v_parcels.parcels).indexOf(p) < 0) {
-      f_ids.push(p)
-    } else { // For those already loaded, we still "highligh" them
-      parcel_add_to_map(p)
-    }
   }
+
+
+  var loaders = 0
+
+
+
+  /**
+  * Loads from IGN parcelles and batiments whose id are in array ids
+  *
+  * @param {array} ids
+  * @return {}
+  */
+  function load_parcelles_from_ids(ids) {
+    // We may received ids that are already loaded
+    f_ids = []  // So we create the f_ids that will contain only the ids that are not already loaded
+    ids.forEach(function(p) {
+      if (Object.keys(v_parcels.parcels).indexOf(p) < 0) {
+        f_ids.push(p)
+      } else { // For those already loaded, we still "highligh" them
+        parcel_add_to_map(p)
+      }
+    }
   )
   ids=f_ids
-  console.log(ids)
+  //console.log(ids)
 
   addendum =  ids.filter( p => (p.charAt(0) == 'p')  ).join(":")
   if (addendum.length > 0) {
-  if (loaders == 0)
+    if (loaders == 0)
     {Notiflix.Loading.Custom('Chargement des parcelles ...');}
-  loaders += 1 ;
+    loaders += 1 ;
     api_full_url = "/api/ign/get-parcels/"+addendum
     fetch(api_full_url)
     .then(function(response) {
@@ -739,11 +739,11 @@ function load_parcelles_from_ids(ids) {
       loaders -= 1 ;
       if (loaders == 0)
       {  Notiflix.Loading.Remove();}
-        storeGeoJSON(jsonResponse).forEach(function(element) {
-          v_parcels.parcels[element].properties._selected = true
-          addToTheLayer(element,SearchLayerGroup)
-          parcel_add_to_map(element)
-        })
+      storeGeoJSON(jsonResponse).forEach(function(element) {
+        v_parcels.parcels[element].properties._selected = true
+        addToTheLayer(element,SearchLayerGroup)
+        parcel_add_to_map(element)
+      })
     })
     .catch(function(error) {                        // catch
       console.log('IGN Server not available', error);
@@ -751,38 +751,38 @@ function load_parcelles_from_ids(ids) {
     });
   }
 
-    addendum =  ids.filter( p => (p.charAt(0) == 'b') )
-    if (addendum.length> 0) {
-  if (loaders == 0)  { Notiflix.Loading.Custom('Chargement des bâtiments ...'); }
-   loaders += 1 ;
-      api_full_url = "/api/ign/get-buildings/"+addendum
-      fetch(api_full_url)
-      .then(function(response) {
-        if(response.ok)
-        {
-          return response.json();
-        }
-        loaders -= 1 ;
-        if (loaders == 0)
-        {  Notiflix.Loading.Remove();}
-        throw new Error(response.status);
-      })
-      .then(function(jsonResponse) {
-        loaders -= 1 ;
-        if (loaders == 0)
-        {  Notiflix.Loading.Remove();}
+  addendum =  ids.filter( p => (p.charAt(0) == 'b') )
+  if (addendum.length> 0) {
+    if (loaders == 0)  { Notiflix.Loading.Custom('Chargement des bâtiments ...'); }
+    loaders += 1 ;
+    api_full_url = "/api/ign/get-buildings/"+addendum
+    fetch(api_full_url)
+    .then(function(response) {
+      if(response.ok)
+      {
+        return response.json();
+      }
+      loaders -= 1 ;
+      if (loaders == 0)
+      {  Notiflix.Loading.Remove();}
+      throw new Error(response.status);
+    })
+    .then(function(jsonResponse) {
+      loaders -= 1 ;
+      if (loaders == 0)
+      {  Notiflix.Loading.Remove();}
 
-          storeGeoJSON(jsonResponse).forEach(function(element) {
-            v_parcels.parcels[element].properties._selected = true
-            addToTheLayer(element,SearchLayerGroup)
-            parcel_add_to_map(element)
-          })
+      storeGeoJSON(jsonResponse).forEach(function(element) {
+        v_parcels.parcels[element].properties._selected = true
+        addToTheLayer(element,SearchLayerGroup)
+        parcel_add_to_map(element)
       })
-      .catch(function(error) {                        // catch
-        console.log('IGN Server not available', error);
-        Notiflix.Report.Failure('Erreur IGN','Serveurs IGN non accessibles. <br /> Essayez plus tard.','Ok');
-      });
-    }
+    })
+    .catch(function(error) {                        // catch
+      console.log('IGN Server not available', error);
+      Notiflix.Report.Failure('Erreur IGN','Serveurs IGN non accessibles. <br /> Essayez plus tard.','Ok');
+    });
+  }
 
 }
 
@@ -803,26 +803,26 @@ function addToTheLayer(id, layergroup, style = styleNotActive()) {
 }
 
 /**
- * Returns an array of ids of element stored in the global v_parcels object
- *
- * @param {json} data a GeoJSON FeatureCollection
- * @return {array} ids of loaded elements
- */
+* Returns an array of ids of element stored in the global v_parcels object
+*
+* @param {json} data a GeoJSON FeatureCollection
+* @return {array} ids of loaded elements
+*/
 function storeGeoJSON(data) {
   larray = []
   data.features.forEach(function(element) {
     if (!(element.id in v_parcels.parcels)) {
       Vue.set(v_parcels.parcels, element.id,  {
-      "type": "Feature",
-      "properties": element.properties,
-      "geometry": element.geometry,
-      "layer" : null,
-      "id" : element.id
-    })
-    larray.push(element.id) ;
-  }
-})
-return larray
+        "type": "Feature",
+        "properties": element.properties,
+        "geometry": element.geometry,
+        "layer" : null,
+        "id" : element.id
+      })
+      larray.push(element.id) ;
+    }
+  })
+  return larray
 }
 
 
@@ -831,19 +831,19 @@ function style_highlight(id) {
 }
 function style_restore(id) {
   if (activelayer == id) {
-      lstyle = styleSelected()
+    lstyle = styleSelected()
   } else
   switch(v_parcels.parcels[id].properties._selected) {
-  case true:
+    case true:
     lstyle = styleActive()
     break
-  case false:
+    case false:
     lstyle = styleNotActive()
     break
-  default:
+    default:
     lstyle = styleNotActive()
-}
-v_parcels.parcels[id].layer.setStyle(lstyle)
+  }
+  v_parcels.parcels[id].layer.setStyle(lstyle)
 }
 
 function toggleActive(id) {
@@ -854,31 +854,64 @@ function toggleActive(id) {
 
   if (activelayer != id) { // activate selected style
     if (activelayer != undefined)
-      toggleActive(activelayer)
+    toggleActive(activelayer)
     activelayer = id
     v_parcels.parcels[id].layer.setStyle(styleSelected())
     return
   } else { // restore standard style
     activelayer = undefined ;
     switch(v_parcels.parcels[id].properties._selected) {
-    case true:
+      case true:
       lstyle = styleActive()
       break
-    case false:
+      case false:
       lstyle = styleNotActive()
       break
-    default:
+      default:
       lstyle = styleNotActive()
+    }
+    v_parcels.parcels[id].layer.setStyle(lstyle) ;
   }
-  v_parcels.parcels[id].layer.setStyle(lstyle) ;
-}
 }
 
 
 function formatdetails(id){
   str = '' ;
-  Object.keys(v_parcels.parcels[id].properties).forEach(element =>  { value = v_parcels.parcels[id].properties[element] ; if (value != '')  { str += element +' '+value+"<br>" } }  )
-  str += '<br />materiaux_de_la_toiture : ' + dmatto[v_parcels.parcels[id].properties['materiaux_de_la_toiture']] + '<br />'
+  // Object.keys(v_parcels.parcels[id].properties).forEach(element =>  { value = v_parcels.parcels[id].properties[element] ; if (value != '')  { str += element +' '+value+"<br>" } }  )
+
+  if (v_parcels.parcels[id].properties['date_d_apparition'] != null)
+    str += 'Année enregistrement : ' + (v_parcels.parcels[id].properties['date_d_apparition']).split("-")[0] + '<br />'
+
+    if (v_parcels.parcels[id].properties['contenance'] != null)
+      str += 'Surface au sol : ' + contenance_format_building(v_parcels.parcels[id].properties['contenance']) + '<br />'
+
+
+
+  if (v_parcels.parcels[id].properties['altitude_minimale_sol'] != null)
+    str += 'Altitude : ' + (v_parcels.parcels[id].properties['altitude_minimale_sol']) + '<br />'
+
+    if (v_parcels.parcels[id].properties['hauteur'] != null)
+      str += 'Hauteur : ' + (v_parcels.parcels[id].properties['hauteur']) + '<br />'
+
+
+  if (v_parcels.parcels[id].properties['usage_1'] != null)
+    str += 'Usage Principal : ' + v_parcels.parcels[id].properties['usage_1'] + '<br />'
+  if (v_parcels.parcels[id].properties['usage_2'] != null)
+    str += 'Usage Secondaire : ' + v_parcels.parcels[id].properties['usage_2'] + '<br />'
+
+  if (v_parcels.parcels[id].properties['nombre_de_logements'] != null)
+    str += 'Nombre de Logements : ' + v_parcels.parcels[id].properties['nombre_de_logements'] + '<br />'
+
+    if (v_parcels.parcels[id].properties['nombre_d_etages'] != null)
+      str += 'Nombre d\'étage : ' + v_parcels.parcels[id].properties['nombre_d_etages'] + '<br />'
+
+      if (!(v_parcels.parcels[id].properties['materiaux_des_murs'] == null) )
+            if (!(v_parcels.parcels[id].properties['materiaux_des_murs'] == "") )
+     str += 'Murs : ' + dmatgm[v_parcels.parcels[id].properties['materiaux_des_murs']].toLowerCase().capitalize() + '<br />'
+
+  if (!(v_parcels.parcels[id].properties['materiaux_de_la_toiture'] == null))
+  if (!(v_parcels.parcels[id].properties['materiaux_de_la_toiture'] == ""))
+  str += 'Toiture : ' + dmatto[v_parcels.parcels[id].properties['materiaux_de_la_toiture']].toLowerCase().capitalize() + '<br />'
   return str
 }
 
@@ -889,10 +922,10 @@ function parcel_add_to_map(id) {
   v_parcels.parcels[id].properties._selected = true
   if (v_parcels.parcels[id].properties.a_type.charAt(0) === 'p') {
     v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+formatdetails(id)+"<a class=\"mt-2 btn btn-danger text-white\" href=\"#\" onclick=\"v_parcels.p_remove('"+id+"')\">  \
-     <i class=\"fa fa-trash-o fa-lg\"></i></a>" );
+    <i class=\"fa fa-trash-o fa-lg\"></i></a>" );
   } else {
     v_parcels.parcels[id].layer.bindPopup(format_batiment_id(v_parcels.parcels[id].properties.id)+"<br />"+formatdetails(id)+"<a class=\"mt-2 btn btn-danger text-white\" href=\"#\" onclick=\"v_parcels.p_remove('"+id+"')\">  \
-     <i class=\"fa fa-trash-o fa-lg\"></i></a>" );
+    <i class=\"fa fa-trash-o fa-lg\"></i></a>" );
   }
   // v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+"<a class=\"mt-2 btn btn-danger text-white\" href=\"#\" onclick=\"v_parcels.p_remove('"+id+"')\">  \
   // <i class=\"fa fa-trash-o fa-lg\"></i></a>");
@@ -927,26 +960,26 @@ function generate_a_token() {
     var {layer, ...rest} = element
     arr.push(rest)
   }
-  );
+);
 
 
-  body_object = {'text': arr}
-  console.log(JSON.stringify(body_object))
+body_object = {'text': arr}
+console.log(JSON.stringify(body_object))
 
-  fetch('/token', {
-    method: 'POST',
-    headers: {
-      "X-CSRFToken" : "{{ csrf_token() }}",
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body_object)
-  }).then(function(response) {
-    return response.json();
-  }).then(function(data) {
-    token = data.token
-    console.log(token)
-  });
+fetch('/token', {
+  method: 'POST',
+  headers: {
+    "X-CSRFToken" : "{{ csrf_token() }}",
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(body_object)
+}).then(function(response) {
+  return response.json();
+}).then(function(data) {
+  token = data.token
+  console.log(token)
+});
 
 
 }
@@ -962,27 +995,27 @@ function generate_a_nplan() {
     var {layer, ...rest} = element
     arr.push(rest)
   }
-  );
-  body_object = {nplan: {
-    id : v_plan.id,
-    title : v_plan.title,
-    parcels : arr
-  }}
-  console.log(JSON.stringify(body_object))
+);
+body_object = {nplan: {
+  id : v_plan.id,
+  title : v_plan.title,
+  parcels : arr
+}}
+console.log(JSON.stringify(body_object))
 
-  fetch('/api/createnplan', {
-    method: 'POST',
-    headers: {
-      "X-CSRFToken" : "{{ csrf_token() }}",
-      'Accept': 'application/json',
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify(body_object)
-  }).then(function(response) {
-    return response.json();
-  }).then(function(data) {
-    console.log(data)
-  });
+fetch('/api/createnplan', {
+  method: 'POST',
+  headers: {
+    "X-CSRFToken" : "{{ csrf_token() }}",
+    'Accept': 'application/json',
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify(body_object)
+}).then(function(response) {
+  return response.json();
+}).then(function(data) {
+  console.log(data)
+});
 }
 
 
@@ -1004,7 +1037,7 @@ function load_nplan(uid, extra) {
     // load additional
     if (extra != '') {
       ids = extra.split('#')[0]  ; // # added to prevent contamination with # if added to url
-      console.log(ids)
+//      console.log(ids)
       load_parcelles_from_ids(ids.split(':'))
     }
   })
@@ -1014,39 +1047,39 @@ function load_nplan(uid, extra) {
 // Init
 
 
- Notiflix.Notify.Init({plainText:false})
- Notiflix.Loading.Init({customSvgUrl:'{{ url_for('static', filename='icon/path-vue.svg') }}',svgSize:'80px',});
-  // Notiflix.Loading.Custom('Chargement ...');
-  // Notiflix.Loading.Remove();
+Notiflix.Notify.Init({plainText:false})
+Notiflix.Loading.Init({customSvgUrl:'{{ url_for('static', filename='icon/path-vue.svg') }}',svgSize:'80px',});
+// Notiflix.Loading.Custom('Chargement ...');
+// Notiflix.Loading.Remove();
 
-    let params = window.location.href.split('/').pop().split(',');
-    if (params.length==1) {
-      console.log("opening") ;
-      sidebar.open('list');
-      document.getElementById("search_input").focus();
-    }
-    if (params.length>1) {
+let params = window.location.href.split('/').pop().split(',');
+if (params.length==1) {
+  console.log("opening") ;
+  sidebar.open('list');
+  document.getElementById("search_input").focus();
+}
+if (params.length>1) {
 
-      vm.lon = parseFloat(params[1]) ;
-      vm.lat = parseFloat(params[0]) ;
-    }
-    if (params.length>2) {
-      vm.zl = parseFloat(params[2])  ;
-    }
-    if (params.length>3) {
-      // v_plan.id = params[3]
-      // if (v_plan.id != '') {
-      // load_nplan(params[3], (params.length>4) ? params[4] : '' )
-      //}
-    }
-    if ((params[3] == '') && (params.length>4)) {
-      ids = params[4].split('#')[0]  ; // # added to prevent contamination with # if added to url
-      // console.log(ids)
-      load_parcelles_from_ids(ids.split(':'))
-    }
-    if (!(isNaN(vm.lat)) || !(isNaN(vm.lon)) || !(isNaN(vm.zl))) {
-      mymap.setView([vm.lat,vm.lon], vm.zl)
-    }
+  vm.lon = parseFloat(params[1]) ;
+  vm.lat = parseFloat(params[0]) ;
+}
+if (params.length>2) {
+  vm.zl = parseFloat(params[2])  ;
+}
+if (params.length>3) {
+  // v_plan.id = params[3]
+  // if (v_plan.id != '') {
+  // load_nplan(params[3], (params.length>4) ? params[4] : '' )
+  //}
+}
+if ((params[3] == '') && (params.length>4)) {
+  ids = params[4].split('#')[0]  ; // # added to prevent contamination with # if added to url
+  // console.log(ids)
+  load_parcelles_from_ids(ids.split(':'))
+}
+if (!(isNaN(vm.lat)) || !(isNaN(vm.lon)) || !(isNaN(vm.zl))) {
+  mymap.setView([vm.lat,vm.lon], vm.zl)
+}
 
 
 
