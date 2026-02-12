@@ -1,0 +1,26 @@
+[Unit]
+Description=ParcelleApp Gunicorn Service
+After=network.target
+
+[Service]
+User=mtauban
+Group=www-data
+WorkingDirectory=/home/mtauban/parcelle.app/parcelleapp
+EnvironmentFile=/home/mtauban/parcelle.app/parcelleapp/.env
+Environment=PATH=/home/mtauban/parcelle.app/parcelleapp/venv/bin
+
+RuntimeDirectory=parcelleapp
+RuntimeDirectoryMode=0755
+
+ExecStart=/home/mtauban/parcelle.app/parcelleapp/venv/bin/gunicorn \
+  --config /home/mtauban/parcelle.app/parcelleapp/gunicorn.conf.py \
+  wsgi:app
+ExecReload=/bin/kill -s HUP $MAINPID
+KillSignal=SIGTERM
+TimeoutStopSec=30
+PrivateTmp=true
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

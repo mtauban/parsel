@@ -13,7 +13,7 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
 
-        with open('./assets/cadastre-69-parcelles.json') as file:
+        with open('./assets/cadastre-71-parcelles.json') as file:
             ln = 0
             for line in file:
                 ln += 1
@@ -40,7 +40,7 @@ if __name__ == "__main__":
                      arpente = parcel['properties']['arpente'],
                  )
 
-                db.session.add(P1)
+                db.session.merge(P1)
                 if (ln % 5000) == 0:
                     print("partial commit")
                     db.session.commit()

@@ -1,12 +1,6 @@
 from owslib.wfs import WebFeatureService
 import json
 
-
-ign_apikey = "inspire" # "7tbcsy3xj9ymeoi4mjdlyayo"
-# apikey = "beta"
-
-#   wfs11 = WebFeatureService(url='https://wxs.ign.fr/'+ign_apikey+'/geoportail/wfs', version='2.0.0', headers={ 'User-Agent': 'parcelle-recs' })
-# https://wxs.ign.fr/inspire/geoportail/wfs
 wfs11 = WebFeatureService(url='https://wxs.ign.fr/essentiels/geoportail/wfs', version='2.0.0')
 
 

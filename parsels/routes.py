@@ -23,6 +23,7 @@ from area import area
 from functools import partial
 import math
 import requests
+from owslib.wfs import WebFeatureService
 
 #
 # def getAreafromGeometry(polygon):
@@ -210,11 +211,12 @@ def map_view(mapid):
 
 @app.route('/map' , methods=['POST'])
 def from_address():
-
     text = (request.form['addr'])
     if len(text)<5:
         return redirect(url_for('goo'))
-    apikey = "0c8829b0-2371-11eb-9681-61367c5fb30c"
+    apikey = app.config.get("GEOCODE_API_KEY")
+    if not apikey:
+        return jsonify(error=500, text="GEOCODE_API_KEY is not configured"), 500
 
     headers = { "apikey": apikey }
 
@@ -288,7 +290,10 @@ def parcellesearch():
 @app.route('/api/autocomplete',  methods=['POST'])
 def autocomplete():
     text = (request.values.get('text'))
-    apikey = "0c8829b0-2371-11eb-9681-61367c5fb30c"
+    apikey = app.config.get("GEOCODE_API_KEY")
+    if not apikey:
+        return jsonify(error=500, text="GEOCODE_API_KEY is not configured"), 500
+
     headers = { "apikey": apikey }
     params = (
         ("text",text),
@@ -401,13 +406,8 @@ def ign_posttreatment_parcels(data):
 
 def ign_checkwfs(app):
     if app.wfs11 == None:
-        # ign wfs11
-        ign_apikey = "7tbcsy3xj9ymeoi4mjdlyayo"
-        # apikey = "beta"
         try:
-            app.wfs11 =  WebFeatureService(url='https://wxs.ign.fr/essentiels/geoportail/wfs', version='2.0.0')
-
-            # app.wfs11 = WebFeatureService(url='https://wxs.ign.fr/'+ign_apikey+'/geoportail/wfs', version='1.1.0', headers={ 'User-Agent': 'parcelle-recs' })
+            app.wfs11 =  WebFeatureService(url='https://data.geopf.fr/wfs/ows', version='2.0.0')
         except:
             print ("Timeout occurred")
             app.wfs11 = None

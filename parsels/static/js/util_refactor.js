@@ -44,11 +44,16 @@ String.prototype.capitalize = function() {
 }
 
 function format_batiment_id(id){
-  return parseInt(id.replace('bBATIMENT',''))
+  parsed = parseInt(String(id).replace('bBATIMENT',''))
+  return Number.isFinite(parsed) ? parsed : id
 }
 
 function contenance_format_building(number) {
-return Math.round(number) + ' m2'
+  parsed = Number(number)
+  if (!Number.isFinite(parsed)) {
+    return 'n.d.'
+  }
+  return Math.round(parsed) + ' m2'
 }
 
 var leafstyle_notactive = {

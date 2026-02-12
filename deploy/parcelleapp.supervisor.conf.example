@@ -1,0 +1,13 @@
+[program:parcelleapp]
+directory=/home/mtauban/parcelle.app/parcelleapp
+command=/home/mtauban/parcelle.app/parcelleapp/venv/bin/gunicorn --config /home/mtauban/parcelle.app/parcelleapp/gunicorn.conf.py wsgi:app
+user=mtauban
+autostart=true
+autorestart=true
+stopasgroup=true
+killasgroup=true
+stdout_logfile=/var/log/parcelleapp/gunicorn_supervisor.log
+stdout_logfile_maxbytes=50MB
+stdout_logfile_backups=10
+redirect_stderr=true
+environment=LANG=fr_FR.UTF-8,LC_ALL=fr_FR.UTF-8

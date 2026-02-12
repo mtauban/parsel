@@ -133,6 +133,31 @@
 
     <a class="btn btn btn-light" href="#"  onclick="load_parcelles('parcels')"  role="button"><i class="fas fa-vector-square"></i> Charger les Parcelles</a></li>
     <a class="btn btn btn-light" href="#"  onclick="load_parcelles('buildings')"  role="button"><i class="fas fa-building"></i> Charger les Bâtiments</a></li>
+    <div class="mt-3">
+      <h2>Visualisation bâtiments</h2>
+      <select id="building-visual-mode" class="form-select" onchange="set_building_visual_mode(this.value)">
+        <option value="basic">Affichage pointillé (base)</option>
+        <option value="year">Année de construction</option>
+        <option value="cad_mod_date">Date dernière modification cadastrale</option>
+        <option value="logements">Nombre de logements</option>
+        <option value="usage_primary">Usage principal</option>
+        <option value="usage_mix">Usages (principal + secondaire)</option>
+        <option value="height_quantile">Hauteur (classes quantiles)</option>
+        <option value="floors_quantile">Etages (classes quantiles)</option>
+        <option value="ceiling_height_quantile">Hauteur moyenne sous plafond (quantiles)</option>
+        <option value="housing_surface_quantile">Surface moyenne logement (quantiles)</option>
+        <option value="historic_period">Périodes historiques</option>
+        <option value="match_grade">Fiabilité foncière (classe A/B/C)</option>
+        <option value="match_score">Fiabilité foncière (score)</option>
+        <option value="floors">Nombre d'étages</option>
+        <option value="height">Hauteur</option>
+        <option value="roof_type">Type de toiture</option>
+        <option value="wall_type">Type de murs</option>
+        <option value="roof_delta">Différence alt. toit (max-min)</option>
+      </select>
+      <div id="building-visual-legend" class="mt-2 small"></div>
+      <p class="small text-muted mt-2 mb-0">Appliqué aux bâtiments chargés uniquement.</p>
+    </div>
     <div id="v_v_list">
       <h2>Selection</h2>
       <p>Ici apparaissent les élements que vous avez selectionnés</p>
@@ -418,19 +443,22 @@ L.control.zoom({  position:'bottomright'}).addTo(mymap);
 
 
 
-var osmLayer = L.tileLayer('https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}{r}?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q', { // LIGNE 20
-  tileSize: 512,
-  zoomOffset: -1,
-  attribution: 'Mapbox',
-  maxZoom: 20,
-  minZoom:1
-});
+var mapboxAccessToken = "{{ config.get('MAPBOX_ACCESS_TOKEN', '') | e }}"
+var osmLayerUrl = mapboxAccessToken
+  ? 'https://api.mapbox.com/styles/v1/mapbox/streets-v11/tiles/{z}/{x}/{y}{r}?access_token=' + mapboxAccessToken
+  : 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'
+var osmLayerOptions = mapboxAccessToken
+  ? { tileSize: 512, zoomOffset: -1, attribution: 'Mapbox', maxZoom: 20, minZoom: 1 }
+  : { attribution: '&copy; OpenStreetMap contributors', maxZoom: 20, minZoom: 1 }
+var osmLayer = L.tileLayer(osmLayerUrl, osmLayerOptions);
 var satellite = false;
-satellite_url = 'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}{r}.jpg90?access_token=pk.eyJ1IjoibXRhdWJhbiIsImEiOiJja2hxaWxvYWYwYTM0Mnptczc4OWZ5OHpjIn0.8uReGdiiCgZJkWR7FBiJ7Q'
-var mapBoxLayer = L.tileLayer(satellite_url, { // LIGNE 20
-  attribution: 'Mapbox',
+satellite_url = mapboxAccessToken
+  ? 'https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}{r}.jpg90?access_token=' + mapboxAccessToken
+  : 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
+var mapBoxLayer = L.tileLayer(satellite_url, {
+  attribution: mapboxAccessToken ? 'Mapbox' : 'Tiles &copy; Esri',
   maxZoom: 20,
-  minZoom:1
+  minZoom: 1
 });
 
 var PlanLayerGroup = new L.FeatureGroup([],  { attribution: 'ign.fr'})
@@ -794,11 +822,21 @@ function addToTheLayer(id, layergroup, style = styleNotActive()) {
       v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="v_parcels.p_add(\''+id+'\')"><i class="far fa-plus-square"></i></a>');
     } else {
       v_parcels.parcels[id].layer.bindPopup(format_batiment_id(v_parcels.parcels[id].properties.id)+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="v_parcels.p_add(\''+id+'\')"><i class="far fa-plus-square"></i></a>');
+      v_parcels.parcels[id].layer.bindTooltip(formatdetails(id), {
+        sticky: true,
+        direction: 'top',
+        opacity: 0.9
+      });
     }
     // v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="parcel_add_to_map(\''+id+'\')"><i class="far fa-plus-square"></i></a>');
     v_parcels.parcels[id].layer.setStyle(style)
+    apply_default_layer_style(id)
     v_parcels.parcels[id].layer.on('click', function()  { toggleActive(id) } );
     layergroup.addLayer(v_parcels.parcels[id].layer)
+
+    if (v_parcels.parcels[id].properties.a_type.charAt(0) === 'b' && building_visual_mode != "basic") {
+      refresh_buildings_visual_styles()
+    }
   }
 }
 
@@ -829,21 +867,903 @@ function storeGeoJSON(data) {
 function style_highlight(id) {
   v_parcels.parcels[id].layer.setStyle(styleHighlighted())
 }
-function style_restore(id) {
-  if (activelayer == id) {
-    lstyle = styleSelected()
-  } else
-  switch(v_parcels.parcels[id].properties._selected) {
-    case true:
-    lstyle = styleActive()
-    break
-    case false:
-    lstyle = styleNotActive()
-    break
-    default:
-    lstyle = styleNotActive()
+
+var building_visual_mode = "basic"
+var building_visual_palette_numeric = ["#0d3b66", "#1d4e89", "#2e6f95", "#4ea8de", "#76c893", "#ffd166", "#f8961e", "#ef476f"]
+var building_visual_palette_quantile = ["#2166ac", "#67a9cf", "#d1e5f0", "#fddbc7", "#ef8a62", "#b2182b"]
+var building_visual_palette_category = ["#4e79a7", "#f28e2b", "#e15759", "#76b7b2", "#59a14f", "#edc948", "#b07aa1", "#ff9da7", "#9c755f", "#bab0ab"]
+var building_visual_scale = { kind: "none", min: null, max: null, categories: [] }
+var usage_mix_pattern_cache = {}
+var building_visual_active_filter_key = null
+var building_visual_mode_labels = {
+  year: "Année de construction",
+  cad_mod_date: "Date dernière modification cadastrale",
+  logements: "Nombre de logements",
+  usage_primary: "Usage principal",
+  usage_mix: "Usages (principal + secondaire)",
+  height_quantile: "Hauteur (classes quantiles)",
+  floors_quantile: "Etages (classes quantiles)",
+  ceiling_height_quantile: "Hauteur moyenne sous plafond (quantiles)",
+  housing_surface_quantile: "Surface moyenne logement (quantiles)",
+  historic_period: "Périodes historiques",
+  match_grade: "Fiabilité foncière (classe)",
+  match_score: "Fiabilité foncière (score)",
+  floors: "Nombre d'étages",
+  height: "Hauteur",
+  roof_type: "Type de toiture",
+  wall_type: "Type de murs",
+  roof_delta: "Différence alt. toit (max-min)"
+}
+
+function normalize_usage_value(value) {
+  if (!has_value(value)) {
+    return null
   }
-  v_parcels.parcels[id].layer.setStyle(lstyle)
+  normalized = String(value).trim()
+  if (normalized === "" || normalized === "00") {
+    return null
+  }
+  lowered = normalized.toLowerCase()
+  if (lowered === "nc" || lowered === "n.c." || lowered === "non renseigne" || lowered === "non renseigné" || lowered === "inconnu") {
+    return null
+  }
+  return normalized
+}
+
+function get_usage_mix_key(props) {
+  primary = normalize_usage_value(props.usage_1)
+  secondary = normalize_usage_value(props.usage_2)
+  if (!has_value(primary)) {
+    return null
+  }
+  if (!has_value(secondary) || secondary === primary) {
+    return primary
+  }
+  return primary + "||" + secondary
+}
+
+function extract_year_from_date_like(value) {
+  if (!has_value(value)) {
+    return null
+  }
+  match = String(value).match(/^(\d{4})/)
+  if (!match) {
+    return null
+  }
+  year = Number(match[1])
+  return Number.isFinite(year) ? year : null
+}
+
+function get_historic_period_from_year(year) {
+  if (!Number.isFinite(year)) {
+    return null
+  }
+  if (year < 1850) {
+    return "Avant 1850"
+  }
+  if (year <= 1914) {
+    return "1850-1914"
+  }
+  if (year <= 1945) {
+    return "1915-1945"
+  }
+  if (year <= 1974) {
+    return "1946-1974"
+  }
+  if (year <= 1999) {
+    return "1975-1999"
+  }
+  return "2000+"
+}
+
+function parse_fiscal_match(value) {
+  if (!has_value(value)) {
+    return { grade: null, score: null }
+  }
+  text = String(value).trim()
+  if (text === "") {
+    return { grade: null, score: null }
+  }
+  match = text.match(/^([A-Za-z])(?:\s+([0-9]+(?:[.,][0-9]+)?))?/)
+  if (!match) {
+    return { grade: null, score: null }
+  }
+  grade = String(match[1]).toUpperCase()
+  score = null
+  if (has_value(match[2])) {
+    score = Number(String(match[2]).replace(",", "."))
+    if (!Number.isFinite(score)) {
+      score = null
+    }
+  }
+  return { grade: grade, score: score }
+}
+
+function quantile_at(sorted_values, q) {
+  if (!sorted_values || sorted_values.length === 0) {
+    return null
+  }
+  if (sorted_values.length === 1) {
+    return sorted_values[0]
+  }
+  pos = (sorted_values.length - 1) * q
+  lower = Math.floor(pos)
+  upper = Math.ceil(pos)
+  if (lower === upper) {
+    return sorted_values[lower]
+  }
+  weight = pos - lower
+  return sorted_values[lower] + (sorted_values[upper] - sorted_values[lower]) * weight
+}
+
+function get_ordered_categories_for_mode(mode, categories) {
+  ordered = categories.slice()
+  if (mode == "historic_period") {
+    period_rank = {
+      "Avant 1850": 1,
+      "1850-1914": 2,
+      "1915-1945": 3,
+      "1946-1974": 4,
+      "1975-1999": 5,
+      "2000+": 6
+    }
+    ordered.sort(function(a, b) {
+      ra = has_value(period_rank[a]) ? period_rank[a] : 999
+      rb = has_value(period_rank[b]) ? period_rank[b] : 999
+      if (ra != rb) {
+        return ra - rb
+      }
+      return String(a).localeCompare(String(b))
+    })
+    return ordered
+  }
+  if (mode == "match_grade") {
+    grade_rank = { "A": 1, "B": 2, "C": 3, "D": 4 }
+    ordered.sort(function(a, b) {
+      ra = has_value(grade_rank[a]) ? grade_rank[a] : 999
+      rb = has_value(grade_rank[b]) ? grade_rank[b] : 999
+      if (ra != rb) {
+        return ra - rb
+      }
+      return String(a).localeCompare(String(b))
+    })
+    return ordered
+  }
+  return ordered.sort()
+}
+
+function get_building_metric_value(props, mode) {
+  if (!props) {
+    return null
+  }
+
+  if (mode == "year") {
+    return extract_year_from_date_like(props.date_d_apparition)
+  }
+  if (mode == "cad_mod_date") {
+    return extract_year_from_date_like(props.date_modification)
+  }
+  if (mode == "logements") {
+    return Number(props.nombre_de_logements)
+  }
+  if (mode == "usage_primary") {
+    return normalize_usage_value(props.usage_1)
+  }
+  if (mode == "usage_mix") {
+    return get_usage_mix_key(props)
+  }
+  if (mode == "height_quantile") {
+    return Number(props.hauteur)
+  }
+  if (mode == "floors_quantile") {
+    return Number(props.nombre_d_etages)
+  }
+  if (mode == "ceiling_height_quantile") {
+    building_height = Number(props.hauteur)
+    floor_count = Number(props.nombre_d_etages)
+    if (!Number.isFinite(building_height) || !Number.isFinite(floor_count) || floor_count <= 0) {
+      return null
+    }
+    return building_height / floor_count
+  }
+  if (mode == "housing_surface_quantile") {
+    footprint_area = Number(props.contenance)
+    floor_count_for_surface = Number(props.nombre_d_etages)
+    housing_count = Number(props.nombre_de_logements)
+    if (!Number.isFinite(footprint_area) || !Number.isFinite(floor_count_for_surface) || !Number.isFinite(housing_count)) {
+      return null
+    }
+    if (floor_count_for_surface <= 0 || housing_count <= 0) {
+      return null
+    }
+    return (footprint_area * floor_count_for_surface) / housing_count
+  }
+  if (mode == "historic_period") {
+    return get_historic_period_from_year(extract_year_from_date_like(props.date_d_apparition))
+  }
+  if (mode == "match_grade") {
+    return parse_fiscal_match(props.appariement_fichiers_fonciers).grade
+  }
+  if (mode == "match_score") {
+    return parse_fiscal_match(props.appariement_fichiers_fonciers).score
+  }
+  if (mode == "floors") {
+    return Number(props.nombre_d_etages)
+  }
+  if (mode == "height") {
+    return Number(props.hauteur)
+  }
+  if (mode == "roof_delta") {
+    return Number(props.altitude_maximale_toit) - Number(props.altitude_minimale_toit)
+  }
+  if (mode == "roof_type") {
+    if (!has_value(props.materiaux_de_la_toiture)) {
+      return null
+    }
+    return dmatto[props.materiaux_de_la_toiture] || props.materiaux_de_la_toiture
+  }
+  if (mode == "wall_type") {
+    if (!has_value(props.materiaux_des_murs)) {
+      return null
+    }
+    return dmatgm[props.materiaux_des_murs] || props.materiaux_des_murs
+  }
+  return null
+}
+
+function is_numeric_mode(mode) {
+  return mode == "year" || mode == "cad_mod_date" || mode == "logements" || mode == "floors" || mode == "height" || mode == "roof_delta" || mode == "match_score"
+}
+
+function is_quantile_mode(mode) {
+  return mode == "height_quantile" || mode == "floors_quantile" || mode == "ceiling_height_quantile" || mode == "housing_surface_quantile"
+}
+
+function refresh_building_visual_scale() {
+  if (building_visual_mode == "basic") {
+    building_visual_scale = { kind: "none", min: null, max: null, categories: [] }
+    return
+  }
+
+  values = []
+  categories = []
+  seen = {}
+  Object.values(v_parcels.parcels).forEach(function(parcel) {
+    if (!parcel || !parcel.properties || parcel.properties.a_type.charAt(0) !== "b") {
+      return
+    }
+    value = get_building_metric_value(parcel.properties, building_visual_mode)
+    if (!has_value(value)) {
+      return
+    }
+    if (is_numeric_mode(building_visual_mode) || is_quantile_mode(building_visual_mode)) {
+      n = Number(value)
+      if (Number.isFinite(n)) {
+        values.push(n)
+      }
+    } else {
+      if (building_visual_mode == "usage_mix") {
+        parts = String(value).split("||")
+        parts.forEach(function(part) {
+          key = String(part)
+          if (!seen[key]) {
+            seen[key] = true
+            categories.push(key)
+          }
+        })
+      } else {
+        key = String(value)
+        if (!seen[key]) {
+          seen[key] = true
+          categories.push(key)
+        }
+      }
+    }
+  })
+
+  if (is_quantile_mode(building_visual_mode)) {
+    if (values.length == 0) {
+      building_visual_scale = { kind: "none", min: null, max: null, categories: [] }
+      return
+    }
+    sorted = values.slice().sort(function(a, b) { return a - b })
+    breaks = []
+    step_count = building_visual_palette_quantile.length
+    for (qi = 1; qi < step_count; qi++) {
+      threshold = quantile_at(sorted, qi / step_count)
+      if (Number.isFinite(threshold) && (breaks.length === 0 || threshold > breaks[breaks.length - 1])) {
+        breaks.push(threshold)
+      }
+    }
+    building_visual_scale = {
+      kind: "quantile",
+      min: sorted[0],
+      max: sorted[sorted.length - 1],
+      breaks: breaks,
+      categories: []
+    }
+    return
+  }
+
+  if (is_numeric_mode(building_visual_mode)) {
+    if (values.length == 0) {
+      building_visual_scale = { kind: "none", min: null, max: null, categories: [] }
+      return
+    }
+    building_visual_scale = {
+      kind: "numeric",
+      min: Math.min.apply(null, values),
+      max: Math.max.apply(null, values),
+      categories: []
+    }
+    return
+  }
+
+  building_visual_scale = {
+    kind: categories.length > 0 ? "category" : "none",
+    min: null,
+    max: null,
+    categories: get_ordered_categories_for_mode(building_visual_mode, categories)
+  }
+}
+
+function get_color_from_numeric_scale(value) {
+  if (building_visual_scale.kind != "numeric") {
+    return "#7a7a7a"
+  }
+  min = building_visual_scale.min
+  max = building_visual_scale.max
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
+    return "#7a7a7a"
+  }
+  if (max <= min) {
+    return building_visual_palette_numeric[Math.floor(building_visual_palette_numeric.length / 2)]
+  }
+  ratio = (value - min) / (max - min)
+  ratio = Math.max(0, Math.min(1, ratio))
+  idx = Math.round(ratio * (building_visual_palette_numeric.length - 1))
+  return building_visual_palette_numeric[idx]
+}
+
+function get_color_from_quantile_scale(value) {
+  if (building_visual_scale.kind != "quantile") {
+    return "#7a7a7a"
+  }
+  if (!Number.isFinite(value)) {
+    return "#7a7a7a"
+  }
+  breaks = building_visual_scale.breaks || []
+  idx = 0
+  while (idx < breaks.length && value > breaks[idx]) {
+    idx += 1
+  }
+  return building_visual_palette_quantile[Math.min(idx, building_visual_palette_quantile.length - 1)]
+}
+
+function get_color_from_category_scale(value) {
+  if (building_visual_scale.kind != "category") {
+    return "#7a7a7a"
+  }
+  idx = building_visual_scale.categories.indexOf(String(value))
+  if (idx < 0) {
+    return "#7a7a7a"
+  }
+  return building_visual_palette_category[idx % building_visual_palette_category.length]
+}
+
+function get_numeric_bin_index(value) {
+  if (building_visual_scale.kind != "numeric") {
+    return null
+  }
+  min = building_visual_scale.min
+  max = building_visual_scale.max
+  bins = building_visual_palette_numeric.length
+  if (!Number.isFinite(min) || !Number.isFinite(max) || bins <= 0) {
+    return null
+  }
+  if (max <= min) {
+    return Math.floor((bins - 1) / 2)
+  }
+  ratio = (value - min) / (max - min)
+  idx = Math.floor(Math.max(0, Math.min(0.999999, ratio)) * bins)
+  return Math.max(0, Math.min(bins - 1, idx))
+}
+
+function get_quantile_bin_index(value) {
+  if (building_visual_scale.kind != "quantile") {
+    return null
+  }
+  if (!Number.isFinite(value)) {
+    return null
+  }
+  breaks = building_visual_scale.breaks || []
+  idx = 0
+  while (idx < breaks.length && value > breaks[idx]) {
+    idx += 1
+  }
+  return Math.max(0, Math.min(building_visual_palette_quantile.length - 1, idx))
+}
+
+function get_numeric_bin_label(idx) {
+  bins = building_visual_palette_numeric.length
+  min = building_visual_scale.min
+  max = building_visual_scale.max
+  if (!Number.isFinite(min) || !Number.isFinite(max) || bins <= 0) {
+    return "n.d."
+  }
+  if (max <= min) {
+    return format_numeric_legend_value(min)
+  }
+  start = min + ((max - min) * (idx / bins))
+  end = min + ((max - min) * ((idx + 1) / bins))
+  return format_numeric_legend_value(start) + " - " + format_numeric_legend_value(end)
+}
+
+function get_quantile_bin_label(idx) {
+  if (building_visual_scale.kind != "quantile") {
+    return "n.d."
+  }
+  breaks = building_visual_scale.breaks || []
+  lower = building_visual_scale.min
+  upper = building_visual_scale.max
+  if (idx > 0 && idx - 1 < breaks.length) {
+    lower = breaks[idx - 1]
+  }
+  if (idx < breaks.length) {
+    upper = breaks[idx]
+  }
+  return format_numeric_legend_value(lower) + " - " + format_numeric_legend_value(upper)
+}
+
+function get_building_filter_descriptor(props) {
+  value = get_building_metric_value(props, building_visual_mode)
+  if (!has_value(value)) {
+    return { key: "__missing__", label: "Non disponible", color: "#9aa0a6" }
+  }
+
+  if (building_visual_mode == "usage_mix") {
+    category = String(value).split("||")[0]
+    return {
+      key: "cat:" + category,
+      label: "Principal: " + category,
+      color: get_color_from_category_scale(category)
+    }
+  }
+
+  if (is_quantile_mode(building_visual_mode)) {
+    idx_q = get_quantile_bin_index(Number(value))
+    if (!Number.isFinite(idx_q)) {
+      return { key: "__missing__", label: "Non disponible", color: "#9aa0a6" }
+    }
+    return {
+      key: "qbin:" + idx_q,
+      label: get_quantile_bin_label(idx_q),
+      color: building_visual_palette_quantile[idx_q]
+    }
+  }
+
+  if (is_numeric_mode(building_visual_mode)) {
+    idx_n = get_numeric_bin_index(Number(value))
+    if (!Number.isFinite(idx_n)) {
+      return { key: "__missing__", label: "Non disponible", color: "#9aa0a6" }
+    }
+    return {
+      key: "nbin:" + idx_n,
+      label: get_numeric_bin_label(idx_n),
+      color: building_visual_palette_numeric[idx_n]
+    }
+  }
+
+  category_value = String(value)
+  return {
+    key: "cat:" + category_value,
+    label: category_value,
+    color: get_color_from_category_scale(category_value)
+  }
+}
+
+function get_building_legend_items() {
+  item_map = {}
+  Object.values(v_parcels.parcels).forEach(function(parcel) {
+    if (!parcel || !parcel.properties || parcel.properties.a_type.charAt(0) !== "b") {
+      return
+    }
+    descriptor = get_building_filter_descriptor(parcel.properties)
+    key = descriptor.key
+    if (!item_map[key]) {
+      item_map[key] = {
+        key: key,
+        label: descriptor.label,
+        color: descriptor.color,
+        count: 0
+      }
+    }
+    item_map[key].count += 1
+  })
+
+  items = Object.values(item_map)
+  if (items.length === 0) {
+    return items
+  }
+
+  items.sort(function(a, b) {
+    a_missing = a.key === "__missing__"
+    b_missing = b.key === "__missing__"
+    if (a_missing !== b_missing) {
+      return a_missing ? -1 : 1
+    }
+    if (a.key.startsWith("qbin:") && b.key.startsWith("qbin:")) {
+      return Number(a.key.split(":")[1]) - Number(b.key.split(":")[1])
+    }
+    if (a.key.startsWith("nbin:") && b.key.startsWith("nbin:")) {
+      return Number(a.key.split(":")[1]) - Number(b.key.split(":")[1])
+    }
+    return String(a.label).localeCompare(String(b.label))
+  })
+
+  return items
+}
+
+function is_building_hidden_by_filter(props) {
+  if (building_visual_mode == "basic" || !has_value(building_visual_active_filter_key)) {
+    return false
+  }
+  descriptor = get_building_filter_descriptor(props)
+  return descriptor.key !== building_visual_active_filter_key
+}
+
+function detect_layer_group_name(id) {
+  if (!v_parcels.parcels[id] || !v_parcels.parcels[id].layer) {
+    return null
+  }
+  layer = v_parcels.parcels[id].layer
+  if (PlanLayerGroup.hasLayer(layer)) {
+    return "plan"
+  }
+  if (SearchLayerGroup.hasLayer(layer)) {
+    return "search"
+  }
+  if (BuildingsLayerGroup.hasLayer(layer)) {
+    return "buildings"
+  }
+  return null
+}
+
+function remove_layer_from_all_groups(layer) {
+  PlanLayerGroup.removeLayer(layer)
+  SearchLayerGroup.removeLayer(layer)
+  BuildingsLayerGroup.removeLayer(layer)
+}
+
+function add_layer_to_group_by_name(layer, group_name) {
+  if (group_name == "plan") {
+    PlanLayerGroup.addLayer(layer)
+    return
+  }
+  if (group_name == "buildings") {
+    BuildingsLayerGroup.addLayer(layer)
+    return
+  }
+  SearchLayerGroup.addLayer(layer)
+}
+
+function sync_building_layer_visibility_with_filter(id) {
+  if (!v_parcels.parcels[id] || !v_parcels.parcels[id].layer || v_parcels.parcels[id].properties.a_type.charAt(0) !== "b") {
+    return
+  }
+
+  parcel = v_parcels.parcels[id]
+  layer = parcel.layer
+  hidden_by_filter = is_building_hidden_by_filter(parcel.properties)
+  current_group = detect_layer_group_name(id)
+
+  if (hidden_by_filter) {
+    if (has_value(current_group)) {
+      parcel._group_before_filter = current_group
+      remove_layer_from_all_groups(layer)
+    }
+    return
+  }
+
+  if (has_value(current_group)) {
+    return
+  }
+
+  target_group = parcel._group_before_filter
+  if (!has_value(target_group)) {
+    target_group = parcel.properties._selected === true ? "plan" : "search"
+  }
+  add_layer_to_group_by_name(layer, target_group)
+}
+
+function bind_building_legend_filter_handlers() {
+  legend = document.getElementById("building-visual-legend")
+  if (!legend) {
+    return
+  }
+  legend.querySelectorAll(".legend-filter-item").forEach(function(node) {
+    node.addEventListener("click", function(event) {
+      event.preventDefault()
+      key = decodeURIComponent(this.getAttribute("data-filter-key"))
+      if (building_visual_active_filter_key === key) {
+        building_visual_active_filter_key = null
+      } else {
+        building_visual_active_filter_key = key
+      }
+      refresh_buildings_visual_styles()
+    })
+  })
+}
+
+function ensure_usage_mix_pattern(primary_color, secondary_color) {
+  cache_key = primary_color + "|" + secondary_color
+  if (usage_mix_pattern_cache[cache_key]) {
+    return usage_mix_pattern_cache[cache_key]
+  }
+
+  svg = mymap && mymap.getPanes && mymap.getPanes().overlayPane ? mymap.getPanes().overlayPane.querySelector("svg") : null
+  if (!svg) {
+    return null
+  }
+
+  defs = svg.querySelector("defs[data-parcelle-patterns='1']")
+  if (!defs) {
+    defs = document.createElementNS("http://www.w3.org/2000/svg", "defs")
+    defs.setAttribute("data-parcelle-patterns", "1")
+    svg.insertBefore(defs, svg.firstChild)
+  }
+
+  pattern_id = "usage-mix-" + btoa(cache_key).replace(/[^a-zA-Z0-9]/g, "").toLowerCase()
+  if (!document.getElementById(pattern_id)) {
+    pattern = document.createElementNS("http://www.w3.org/2000/svg", "pattern")
+    pattern.setAttribute("id", pattern_id)
+    pattern.setAttribute("patternUnits", "userSpaceOnUse")
+    pattern.setAttribute("width", "8")
+    pattern.setAttribute("height", "8")
+
+    base = document.createElementNS("http://www.w3.org/2000/svg", "rect")
+    base.setAttribute("x", "0")
+    base.setAttribute("y", "0")
+    base.setAttribute("width", "8")
+    base.setAttribute("height", "8")
+    base.setAttribute("fill", primary_color)
+    pattern.appendChild(base)
+
+    stripe = document.createElementNS("http://www.w3.org/2000/svg", "path")
+    stripe.setAttribute("d", "M-2,2 l4,-4 M0,8 l8,-8 M6,10 l4,-4")
+    stripe.setAttribute("stroke", secondary_color)
+    stripe.setAttribute("stroke-width", "2.4")
+    stripe.setAttribute("stroke-linecap", "square")
+    pattern.appendChild(stripe)
+
+    defs.appendChild(pattern)
+  }
+
+  usage_mix_pattern_cache[cache_key] = pattern_id
+  return pattern_id
+}
+
+function apply_usage_mix_pattern_if_needed(id) {
+  parcel = v_parcels.parcels[id]
+  if (!parcel || !parcel.layer || !parcel.layer._path) {
+    return
+  }
+  if (building_visual_mode != "usage_mix") {
+    return
+  }
+
+  mix_key = get_usage_mix_key(parcel.properties || {})
+  if (!has_value(mix_key) || mix_key.indexOf("||") < 0) {
+    return
+  }
+
+  parts = mix_key.split("||")
+  if (parts.length < 2) {
+    return
+  }
+
+  primary_color = get_color_from_category_scale(parts[0])
+  secondary_color = get_color_from_category_scale(parts[1])
+  if (!has_value(primary_color) || !has_value(secondary_color) || primary_color == "#7a7a7a" || secondary_color == "#7a7a7a") {
+    return
+  }
+
+  pattern_id = ensure_usage_mix_pattern(primary_color, secondary_color)
+  if (!has_value(pattern_id)) {
+    return
+  }
+  parcel.layer._path.setAttribute("fill", "url(#" + pattern_id + ")")
+}
+
+function get_building_visual_color(props) {
+  value = get_building_metric_value(props, building_visual_mode)
+  if (!has_value(value)) {
+    return null
+  }
+  if (building_visual_mode == "usage_mix") {
+    return get_color_from_category_scale(String(value).split("||")[0])
+  }
+  if (is_quantile_mode(building_visual_mode)) {
+    n_q = Number(value)
+    if (!Number.isFinite(n_q)) {
+      return null
+    }
+    return get_color_from_quantile_scale(n_q)
+  }
+  if (is_numeric_mode(building_visual_mode)) {
+    n = Number(value)
+    if (!Number.isFinite(n)) {
+      return null
+    }
+    return get_color_from_numeric_scale(n)
+  }
+  return get_color_from_category_scale(value)
+}
+
+function format_numeric_legend_value(value) {
+  if (!Number.isFinite(value)) {
+    return "n.d."
+  }
+  if (building_visual_mode == "year" || building_visual_mode == "cad_mod_date" || building_visual_mode == "logements" || building_visual_mode == "floors" || building_visual_mode == "floors_quantile") {
+    return String(Math.round(value))
+  }
+  return String(Math.round(value * 10) / 10)
+}
+
+function render_building_legend() {
+  legend = document.getElementById("building-visual-legend")
+  if (!legend) {
+    return
+  }
+
+  if (building_visual_mode == "basic") {
+    legend.innerHTML = "<span class=\"text-muted\">Mode standard: pointillé.</span>"
+    return
+  }
+
+  html = []
+  html.push("<div class=\"fw-bold mb-1\">" + escape_html(building_visual_mode_labels[building_visual_mode] || building_visual_mode) + "</div>")
+
+  if (building_visual_scale.kind == "none") {
+    html.push("<div class=\"text-muted\">Aucune donnée exploitable sur les bâtiments chargés.</div>")
+    legend.innerHTML = html.join("")
+    return
+  }
+  items = get_building_legend_items()
+  max_items = 16
+  shown = items.slice(0, max_items)
+  shown.forEach(function(item) {
+    selected = building_visual_active_filter_key === item.key
+    border_color = selected ? "#111" : "#555"
+    bg_color = selected ? "#f7f7f7" : "transparent"
+    html.push(
+      "<a href=\"#\" class=\"legend-filter-item d-block text-decoration-none\" data-filter-key=\"" + encodeURIComponent(item.key) + "\" style=\"color:inherit;padding:2px 4px;border:1px solid " + border_color + ";background:" + bg_color + ";margin-bottom:2px;border-radius:4px;\">" +
+      "<span style=\"display:inline-block;width:12px;height:12px;background:" + item.color + ";border:1px solid #555;margin-right:6px;vertical-align:middle;\"></span>" +
+      escape_html(item.label) + " <span class=\"text-muted\">(" + item.count + ")</span></a>"
+    )
+  })
+  if (items.length > max_items) {
+    html.push("<div class=\"text-muted\">+" + (items.length - max_items) + " classes</div>")
+  }
+  if (building_visual_mode == "usage_mix") {
+    html.push("<div class=\"text-muted mt-1\">Hachures: usage secondaire (quand présent).</div>")
+  }
+  if (is_quantile_mode(building_visual_mode)) {
+    html.push("<div class=\"text-muted mt-1\">Classes quantiles: répartition équilibrée des bâtiments chargés.</div>")
+  }
+  html.push("<div class=\"text-muted mt-1\">Clique sur un item pour filtrer; reclique pour tout réafficher.</div>")
+  legend.innerHTML = html.join("")
+  bind_building_legend_filter_handlers()
+}
+
+function get_default_layer_style(id) {
+  if (!v_parcels.parcels[id] || !v_parcels.parcels[id].properties) {
+    return styleNotActive()
+  }
+
+  parcel = v_parcels.parcels[id]
+  is_selected = parcel.properties._selected === true
+  is_building = parcel.properties.a_type.charAt(0) === "b"
+  hidden_by_filter = is_building && is_building_hidden_by_filter(parcel.properties)
+
+  if (is_building) {
+    sync_building_layer_visibility_with_filter(id)
+  }
+
+  if (is_building && building_visual_mode != "basic") {
+    color = get_building_visual_color(parcel.properties)
+    missing_data = !has_value(color)
+    if (missing_data) {
+      color = "#9aa0a6"
+    }
+    return {
+      fillColor: color,
+      weight: is_selected ? 4 : 2,
+      opacity: 1,
+      color: missing_data ? "#7d8590" : color,
+      dashArray: missing_data ? "4" : (is_selected ? null : "2"),
+      fillOpacity: missing_data ? (is_selected ? 0.5 : 0.2) : (is_selected ? 0.75 : 0.45)
+    }
+  }
+
+  return is_selected ? styleActive() : styleNotActive()
+}
+
+function apply_default_layer_style(id) {
+  if (!v_parcels.parcels[id] || !v_parcels.parcels[id].layer) {
+    return
+  }
+  if (v_parcels.parcels[id].properties.a_type.charAt(0) === "b") {
+    sync_building_layer_visibility_with_filter(id)
+  }
+  if (v_parcels.parcels[id].properties.a_type.charAt(0) === "b" && is_building_hidden_by_filter(v_parcels.parcels[id].properties)) {
+    v_parcels.parcels[id].layer.setStyle(get_default_layer_style(id))
+    return
+  }
+  if (activelayer == id) {
+    v_parcels.parcels[id].layer.setStyle(styleSelected())
+    return
+  }
+  v_parcels.parcels[id].layer.setStyle(get_default_layer_style(id))
+  apply_usage_mix_pattern_if_needed(id)
+}
+
+function refresh_buildings_visual_styles() {
+  refresh_building_visual_scale()
+  render_building_legend()
+  Object.keys(v_parcels.parcels).forEach(function(id) {
+    if (v_parcels.parcels[id].properties.a_type.charAt(0) === "b") {
+      if (activelayer == id && is_building_hidden_by_filter(v_parcels.parcels[id].properties)) {
+        activelayer = undefined
+      }
+      apply_default_layer_style(id)
+    }
+  })
+}
+
+function set_building_visual_mode(mode) {
+  building_visual_mode = mode || "basic"
+  building_visual_active_filter_key = null
+  refresh_buildings_visual_styles()
+}
+
+function style_restore(id) {
+  apply_default_layer_style(id)
+}
+
+function has_value(value) {
+  return !(value === null || value === undefined || value === '')
+}
+
+function escape_html(value) {
+  return String(value)
+  .replace(/&/g, '&amp;')
+  .replace(/</g, '&lt;')
+  .replace(/>/g, '&gt;')
+  .replace(/"/g, '&quot;')
+  .replace(/'/g, '&#039;')
+}
+
+function humanize_key(key) {
+  return key.replace(/_/g, ' ').replace(/\b\w/g, function(letter) { return letter.toUpperCase() })
+}
+
+function safe_material_label(dictionary, code) {
+  if (!has_value(code)) {
+    return null
+  }
+  raw = dictionary[code]
+  if (!has_value(raw)) {
+    return code
+  }
+  return raw.toLowerCase().capitalize()
+}
+
+function add_detail_line(lines, label, value) {
+  if (!has_value(value)) {
+    return
+  }
+  lines.push(label + ' : ' + escape_html(value))
 }
 
 function toggleActive(id) {
@@ -860,72 +1780,97 @@ function toggleActive(id) {
     return
   } else { // restore standard style
     activelayer = undefined ;
-    switch(v_parcels.parcels[id].properties._selected) {
-      case true:
-      lstyle = styleActive()
-      break
-      case false:
-      lstyle = styleNotActive()
-      break
-      default:
-      lstyle = styleNotActive()
-    }
-    v_parcels.parcels[id].layer.setStyle(lstyle) ;
+    apply_default_layer_style(id);
   }
 }
 
 
 function formatdetails(id){
-  str = '' ;
-  // Object.keys(v_parcels.parcels[id].properties).forEach(element =>  { value = v_parcels.parcels[id].properties[element] ; if (value != '')  { str += element +' '+value+"<br>" } }  )
+  details = []
+  props = v_parcels.parcels[id].properties || {}
+  used_keys = new Set()
 
-  if (v_parcels.parcels[id].properties['date_d_apparition'] != null)
-    str += 'Année enregistrement : ' + (v_parcels.parcels[id].properties['date_d_apparition']).split("-")[0] + '<br />'
+  if (has_value(props.date_d_apparition)) {
+    add_detail_line(details, 'Année enregistrement', String(props.date_d_apparition).split('-')[0])
+    used_keys.add('date_d_apparition')
+  }
 
-    if (v_parcels.parcels[id].properties['contenance'] != null)
-      str += 'Surface au sol : ' + contenance_format_building(v_parcels.parcels[id].properties['contenance']) + '<br />'
+  if (has_value(props.contenance)) {
+    add_detail_line(details, 'Surface au sol', contenance_format_building(props.contenance))
+    used_keys.add('contenance')
+  }
 
+  if (has_value(props.altitude_minimale_sol)) {
+    add_detail_line(details, 'Altitude', props.altitude_minimale_sol)
+    used_keys.add('altitude_minimale_sol')
+  }
 
+  if (has_value(props.hauteur)) {
+    add_detail_line(details, 'Hauteur', props.hauteur)
+    used_keys.add('hauteur')
+  }
 
-  if (v_parcels.parcels[id].properties['altitude_minimale_sol'] != null)
-    str += 'Altitude : ' + (v_parcels.parcels[id].properties['altitude_minimale_sol']) + '<br />'
+  if (has_value(props.usage_1)) {
+    add_detail_line(details, 'Usage principal', props.usage_1)
+    used_keys.add('usage_1')
+  }
 
-    if (v_parcels.parcels[id].properties['hauteur'] != null)
-      str += 'Hauteur : ' + (v_parcels.parcels[id].properties['hauteur']) + '<br />'
+  if (has_value(props.usage_2)) {
+    add_detail_line(details, 'Usage secondaire', props.usage_2)
+    used_keys.add('usage_2')
+  }
 
+  if (has_value(props.nombre_de_logements)) {
+    add_detail_line(details, 'Nombre de logements', props.nombre_de_logements)
+    used_keys.add('nombre_de_logements')
+  }
 
-  if (v_parcels.parcels[id].properties['usage_1'] != null)
-    str += 'Usage Principal : ' + v_parcels.parcels[id].properties['usage_1'] + '<br />'
-  if (v_parcels.parcels[id].properties['usage_2'] != null)
-    str += 'Usage Secondaire : ' + v_parcels.parcels[id].properties['usage_2'] + '<br />'
+  if (has_value(props.nombre_d_etages)) {
+    add_detail_line(details, 'Nombre d\'étages', props.nombre_d_etages)
+    used_keys.add('nombre_d_etages')
+  }
 
-  if (v_parcels.parcels[id].properties['nombre_de_logements'] != null)
-    str += 'Nombre de Logements : ' + v_parcels.parcels[id].properties['nombre_de_logements'] + '<br />'
+  if (has_value(props.materiaux_des_murs)) {
+    add_detail_line(details, 'Murs', safe_material_label(dmatgm, props.materiaux_des_murs))
+    used_keys.add('materiaux_des_murs')
+  }
 
-    if (v_parcels.parcels[id].properties['nombre_d_etages'] != null)
-      str += 'Nombre d\'étage : ' + v_parcels.parcels[id].properties['nombre_d_etages'] + '<br />'
+  if (has_value(props.materiaux_de_la_toiture)) {
+    add_detail_line(details, 'Toiture', safe_material_label(dmatto, props.materiaux_de_la_toiture))
+    used_keys.add('materiaux_de_la_toiture')
+  }
 
-      if (!(v_parcels.parcels[id].properties['materiaux_des_murs'] == null) )
-            if (!(v_parcels.parcels[id].properties['materiaux_des_murs'] == "") )
-     str += 'Murs : ' + dmatgm[v_parcels.parcels[id].properties['materiaux_des_murs']].toLowerCase().capitalize() + '<br />'
+  Object.keys(props).sort().forEach(function(key) {
+    value = props[key]
+    if (used_keys.has(key) || !has_value(value)) {
+      return
+    }
+    if (typeof value === 'object') {
+      add_detail_line(details, humanize_key(key), JSON.stringify(value))
+      return
+    }
+    add_detail_line(details, humanize_key(key), value)
+  })
 
-  if (!(v_parcels.parcels[id].properties['materiaux_de_la_toiture'] == null))
-  if (!(v_parcels.parcels[id].properties['materiaux_de_la_toiture'] == ""))
-  str += 'Toiture : ' + dmatto[v_parcels.parcels[id].properties['materiaux_de_la_toiture']].toLowerCase().capitalize() + '<br />'
-  return str
+  return details.join('<br />')
 }
 
 function parcel_add_to_map(id) {
   SearchLayerGroup.removeLayer(v_parcels.parcels[id].layer)
   PlanLayerGroup.addLayer(v_parcels.parcels[id].layer)
-  v_parcels.parcels[id].layer.setStyle(styleActive())
   v_parcels.parcels[id].properties._selected = true
+  apply_default_layer_style(id)
   if (v_parcels.parcels[id].properties.a_type.charAt(0) === 'p') {
     v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+formatdetails(id)+"<a class=\"mt-2 btn btn-danger text-white\" href=\"#\" onclick=\"v_parcels.p_remove('"+id+"')\">  \
     <i class=\"fa fa-trash-o fa-lg\"></i></a>" );
   } else {
     v_parcels.parcels[id].layer.bindPopup(format_batiment_id(v_parcels.parcels[id].properties.id)+"<br />"+formatdetails(id)+"<a class=\"mt-2 btn btn-danger text-white\" href=\"#\" onclick=\"v_parcels.p_remove('"+id+"')\">  \
     <i class=\"fa fa-trash-o fa-lg\"></i></a>" );
+    v_parcels.parcels[id].layer.bindTooltip(formatdetails(id), {
+      sticky: true,
+      direction: 'top',
+      opacity: 0.9
+    });
   }
   // v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+"<a class=\"mt-2 btn btn-danger text-white\" href=\"#\" onclick=\"v_parcels.p_remove('"+id+"')\">  \
   // <i class=\"fa fa-trash-o fa-lg\"></i></a>");
@@ -938,16 +1883,21 @@ function parcel_add_to_map(id) {
 function parcel_remove(id) {
   l = v_parcels.parcels[id].layer
   PlanLayerGroup.removeLayer(v_parcels.parcels[id].layer)
-  v_parcels.parcels[id].layer.setStyle(styleNotActive())
   SearchLayerGroup.addLayer(v_parcels.parcels[id].layer)
   if (v_parcels.parcels[id].properties.a_type.charAt(0) === 'p') {
     v_parcels.parcels[id].layer.bindPopup(v_parcels.parcels[id].properties.id+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="v_parcels.p_add(\''+id+'\')"><i class="far fa-plus-square"></i></a>');
   } else {
     v_parcels.parcels[id].layer.bindPopup(format_batiment_id(v_parcels.parcels[id].properties.id)+"<br />"+'<a class="mt-2 btn btn-primary text-white" href="#" onclick="v_parcels.p_add(\''+id+'\')"><i class="far fa-plus-square"></i></a>');
+    v_parcels.parcels[id].layer.bindTooltip(formatdetails(id), {
+      sticky: true,
+      direction: 'top',
+      opacity: 0.9
+    });
   }
   temp = v_parcels.parcels[id]
   temp.properties._selected = false
   Vue.set(v_parcels.parcels, id, temp)
+  apply_default_layer_style(id)
   updatewindowhistory()
 }
 
@@ -1051,12 +2001,55 @@ Notiflix.Notify.Init({plainText:false})
 Notiflix.Loading.Init({customSvgUrl:'{{ url_for('static', filename='icon/path-vue.svg') }}',svgSize:'80px',});
 // Notiflix.Loading.Custom('Chargement ...');
 // Notiflix.Loading.Remove();
+render_building_legend()
+
+function geolocate_and_focus(radius_meters = 500) {
+  if (!("geolocation" in navigator)) {
+    return
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    function(position) {
+      lat = position.coords.latitude
+      lon = position.coords.longitude
+      vm.lat = lat
+      vm.lon = lon
+
+      geoloc_feature = {
+        type: "Feature",
+        geometry: {
+          type: "Point",
+          coordinates: [lon, lat]
+        },
+        properties: {
+          label: "Votre position"
+        }
+      }
+
+      // Reuse the exact same success path as address search.
+      loadmarkerandcenter(geoloc_feature, 17)
+
+      // Then force a near view around user position (~500m radius).
+      bounds = L.circle([lat, lon], { radius: radius_meters }).getBounds()
+      mymap.fitBounds(bounds, { maxZoom: 18, padding: [20, 20] })
+    },
+    function(error) {
+      console.log("Geolocation not available", error)
+    },
+    {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 60000
+    }
+  )
+}
 
 let params = window.location.href.split('/').pop().split(',');
 if (params.length==1) {
   console.log("opening") ;
   sidebar.open('list');
   document.getElementById("search_input").focus();
+  geolocate_and_focus(500);
 }
 if (params.length>1) {
 
@@ -1077,7 +2070,7 @@ if ((params[3] == '') && (params.length>4)) {
   // console.log(ids)
   load_parcelles_from_ids(ids.split(':'))
 }
-if (!(isNaN(vm.lat)) || !(isNaN(vm.lon)) || !(isNaN(vm.zl))) {
+if (!(isNaN(vm.lat)) && !(isNaN(vm.lon)) && !(isNaN(vm.zl))) {
   mymap.setView([vm.lat,vm.lon], vm.zl)
 }
 
