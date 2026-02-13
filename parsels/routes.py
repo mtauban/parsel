@@ -7,15 +7,20 @@ import shapely
 
 import json
 import ujson
+import time
+import numbers
 
-from . import app, db, cache
+from . import app, db, cache, csrf
 from .models import Parcel, Plan, Association, Token, Map, Feature
 from geoalchemy2.functions import ST_DistanceSphere, ST_MakePoint, ST_Centroid, ST_DWithin, ST_SetSRID, ST_AsGeoJSON, ST_Contains, ST_MakeEnvelope
 from geoalchemy2.functions import ST_GeomFromGeoJSON
 
 import pyproj
 import shapely.ops as ops
-from shapely.geometry import shape, GeometryCollection
+from shapely.geometry import shape, GeometryCollection, mapping
+from shapely import make_valid, set_precision
+from shapely.ops import unary_union
+from shapely.strtree import STRtree
 
 
 from area import area
@@ -554,6 +559,268 @@ def ign_getbuildingsfromids(ids):
     data_b = ign_posttreatment_buildings(data_b)
     return jsonify(data_b)
 
+
+
+def _extract_merge_primitive_ids(feature_id, properties):
+    raw_properties = properties if isinstance(properties, dict) else {}
+    raw_ids = raw_properties.get("merged_from_ids", [])
+    values = raw_ids if isinstance(raw_ids, list) else []
+    if not values and isinstance(feature_id, str) and len(feature_id) > 1 and feature_id[0] in ("p", "b"):
+        values = [feature_id]
+
+    out = []
+    seen = set()
+    for value in values:
+        value_str = str(value or "")
+        if len(value_str) <= 1 or value_str[0] not in ("p", "b"):
+            continue
+        if value_str in seen:
+            continue
+        seen.add(value_str)
+        out.append(value_str)
+    return out
+
+
+def _polygonal_geometry(geom):
+    if geom is None or geom.is_empty:
+        return None
+    if geom.geom_type in ("Polygon", "MultiPolygon"):
+        return geom
+    if geom.geom_type == "GeometryCollection":
+        parts = []
+        for part in geom.geoms:
+            if part.geom_type == "Polygon":
+                parts.append(part)
+            elif part.geom_type == "MultiPolygon":
+                parts.extend(part.geoms)
+        if not parts:
+            return None
+        return unary_union(parts)
+    return None
+
+
+def _should_merge_geometries(geom_a, geom_b):
+    if not geom_a.intersects(geom_b):
+        return False
+    if geom_a.overlaps(geom_b) or geom_a.contains(geom_b) or geom_b.contains(geom_a):
+        return True
+    boundary_intersection = geom_a.boundary.intersection(geom_b.boundary)
+    return boundary_intersection.length > 0
+
+
+def _candidate_indexes(tree, geom, by_object_id):
+    indexes = []
+    for candidate in tree.query(geom):
+        if isinstance(candidate, numbers.Integral):
+            indexes.append(int(candidate))
+            continue
+        idx = by_object_id.get(id(candidate))
+        if idx is not None:
+            indexes.append(idx)
+    return indexes
+
+
+def _merge_geometry_payload(raw_features, grid_size):
+    prepared = []
+    seen_feature_ids = set()
+    for index, raw_feature in enumerate(raw_features):
+        if not isinstance(raw_feature, dict):
+            continue
+        geometry = raw_feature.get("geometry")
+        if not geometry:
+            continue
+        try:
+            geom = shape(geometry)
+            geom = make_valid(geom)
+            geom = set_precision(geom, grid_size=grid_size)
+            geom = _polygonal_geometry(geom)
+        except Exception:
+            continue
+
+        if geom is None or geom.is_empty:
+            continue
+
+        feature_id = str(raw_feature.get("id") or raw_feature.get("feature_id") or f"source-{index}")
+        if feature_id in seen_feature_ids:
+            continue
+        seen_feature_ids.add(feature_id)
+        properties = raw_feature.get("properties") or {}
+        primitive_ids = _extract_merge_primitive_ids(feature_id, properties)
+        prepared.append(
+            {
+                "id": feature_id,
+                "geom": geom,
+                "primitive_ids": primitive_ids
+            }
+        )
+
+    if len(prepared) < 2:
+        return [], prepared
+
+    geoms = [item["geom"] for item in prepared]
+    tree = STRtree(geoms)
+    object_index = {id(geom): index for index, geom in enumerate(geoms)}
+
+    parent = list(range(len(geoms)))
+    rank = [0] * len(geoms)
+
+    def find(value):
+        while parent[value] != value:
+            parent[value] = parent[parent[value]]
+            value = parent[value]
+        return value
+
+    def union(a_idx, b_idx):
+        root_a = find(a_idx)
+        root_b = find(b_idx)
+        if root_a == root_b:
+            return
+        if rank[root_a] < rank[root_b]:
+            parent[root_a] = root_b
+        elif rank[root_a] > rank[root_b]:
+            parent[root_b] = root_a
+        else:
+            parent[root_b] = root_a
+            rank[root_a] += 1
+
+    for i, geom in enumerate(geoms):
+        for j in _candidate_indexes(tree, geom, object_index):
+            if j <= i:
+                continue
+            if _should_merge_geometries(geom, geoms[j]):
+                union(i, j)
+
+    groups = {}
+    for i in range(len(geoms)):
+        root = find(i)
+        groups.setdefault(root, []).append(i)
+
+    merged_components = []
+    for member_indexes in groups.values():
+        component_geoms = [prepared[idx]["geom"] for idx in member_indexes]
+        component_union = unary_union(component_geoms)
+        component_union = make_valid(component_union)
+        component_union = _polygonal_geometry(component_union)
+        if component_union is None or component_union.is_empty:
+            continue
+
+        component_parts = [component_union] if component_union.geom_type == "Polygon" else list(component_union.geoms)
+        for part in component_parts:
+            if part.is_empty:
+                continue
+            merged_from = []
+            merged_from_seen = set()
+            source_ids = []
+            for idx in member_indexes:
+                source_geom = prepared[idx]["geom"]
+                if not source_geom.intersects(part):
+                    continue
+                source_ids.append(prepared[idx]["id"])
+                for primitive_id in prepared[idx]["primitive_ids"]:
+                    if primitive_id in merged_from_seen:
+                        continue
+                    merged_from_seen.add(primitive_id)
+                    merged_from.append(primitive_id)
+
+            merged_components.append(
+                {
+                    "geometry": part,
+                    "source_ids": source_ids,
+                    "primitive_ids": merged_from
+                }
+            )
+
+    return merged_components, prepared
+
+
+def _iter_geometry_coordinates(geometry):
+    if not isinstance(geometry, dict):
+        return
+    coordinates = geometry.get("coordinates")
+    if coordinates is None:
+        return
+
+    stack = [coordinates]
+    while stack:
+        item = stack.pop()
+        if isinstance(item, (list, tuple)):
+            if len(item) >= 2 and isinstance(item[0], (int, float)) and isinstance(item[1], (int, float)):
+                yield float(item[0]), float(item[1])
+                continue
+            for child in item:
+                stack.append(child)
+
+
+def _looks_like_geographic_features(raw_features):
+    for raw_feature in raw_features:
+        geometry = raw_feature.get("geometry") if isinstance(raw_feature, dict) else None
+        for x, y in _iter_geometry_coordinates(geometry):
+            return abs(x) <= 180.0 and abs(y) <= 90.0
+    return True
+
+
+def _default_merge_grid_size(raw_features):
+    # WGS84 coordinates are in degrees: 1e-6 ~= 0.11 m (decimeter scale).
+    # Projected metric CRS can use direct meter precision.
+    if _looks_like_geographic_features(raw_features):
+        return 0.000001
+    return 0.1
+
+
+@app.route('/api/merge-features', methods=['POST'])
+@csrf.exempt
+def merge_features():
+    payload = request.get_json(silent=True) or {}
+    raw_features = payload.get("features") if isinstance(payload, dict) else None
+    if not isinstance(raw_features, list):
+        return jsonify(error=400, text="Le payload doit contenir une liste 'features'."), 400
+
+    default_grid_size = _default_merge_grid_size(raw_features)
+    if payload.get("grid_size") is None:
+        raw_grid_size = default_grid_size
+    else:
+        try:
+            raw_grid_size = float(payload.get("grid_size"))
+        except Exception:
+            raw_grid_size = default_grid_size
+
+    if not math.isfinite(raw_grid_size) or raw_grid_size <= 0:
+        raw_grid_size = default_grid_size
+
+    merged_components, prepared = _merge_geometry_payload(raw_features, raw_grid_size)
+    stamp = int(time.time() * 1000)
+    response_features = []
+
+    for index, component in enumerate(merged_components):
+        feature_id = f"u-merge-{stamp}-{index + 1}"
+        response_features.append(
+            {
+                "type": "Feature",
+                "id": feature_id,
+                "properties": {
+                    "id": feature_id,
+                    "a_type": "u",
+                    "merged_from_ids": component["primitive_ids"],
+                    "merged_from_count": len(component["primitive_ids"]),
+                    "merged_source_ids": component["source_ids"],
+                    "merged_source_count": len(component["source_ids"])
+                },
+                "geometry": mapping(component["geometry"])
+            }
+        )
+
+    return jsonify(
+        {
+            "type": "FeatureCollection",
+            "features": response_features,
+            "meta": {
+                "submitted_count": len(raw_features),
+                "accepted_count": len(prepared),
+                "merged_count": len(response_features),
+                "grid_size": raw_grid_size
+            }
+        }
+    )
 
 
 @app.route('/api/get-parcels-from-token/<uid>')
