@@ -1,0 +1,11 @@
+.git
+.env
+.venv
+venv
+__pycache__
+*.py[cod]
+*.log
+.DS_Store
+assets/cadastre-*.json
+deploy
+DEPLOYMENT.md

@@ -4,9 +4,16 @@ from geoalchemy2 import Geometry
 from geoalchemy2.functions import ST_AsGeoJSON
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy_utils import PhoneNumber
+from sqlalchemy.dialects.postgresql import JSONB
+
 from . import db
 import utm
 from flask_security import UserMixin, RoleMixin
+from sqlalchemy_json import mutable_json_type
+
+
+#
+# for supporting json https://amercader.net/blog/beware-of-json-fields-in-sqlalchemy/
 
 from datetime import datetime
 
@@ -178,3 +185,69 @@ class Parcel(db.Model):
 
     def __repr__(self):
         return '<Parcel %r>' % self.id
+
+class Map(db.Model):
+    __table_args__ = {'extend_existing': True}
+    id =     db.Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4, unique=True, nullable=False)
+    created_on = db.Column(db.DateTime(), default=datetime.utcnow, nullable=False)
+    updated_on = db.Column(db.DateTime(), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    user_id = db.Column(db.Integer(), db.ForeignKey('user.id'), nullable=False)
+    features = db.relationship('Feature', backref='map')
+    properties =  db.Column(mutable_json_type(dbtype=JSONB, nested=True))
+
+    def toSVG(self,ssize=256, classes=[]):
+        if len(self.features)==0:
+            return
+        colors = ['#000']
+        pathCount = 0
+        factor = 1
+        svg = ''
+        if (str(ssize).isnumeric()):
+            size = ssize
+        else:
+            size = 256
+
+        (minx,miny,maxx,maxy)= (0,0,0,0)
+        for ida,feature in enumerate(self.features) :
+            shapely_geom = to_shape(feature.geometry)
+            geom = shapely.geometry.mapping(shapely_geom);
+            # print(feature.id,geom)
+            for idp,pol in enumerate(geom['coordinates'][0]):
+                # print(idp,pol)
+                svg += '<path   d="' # stroke-width="1" stroke="blue" fill="purple"
+                pathCount += 1
+                for idx,(lng,lat) in enumerate(pol):
+
+                    x,y,zone, ut = utm.from_latlon(lat, lng)
+                    if (ida+idp+idx) == 0:
+                        (minx,miny,maxx,maxy) =(x,y,x,y)
+                    minx = minx if minx < x else x
+                    maxx = maxx if maxx > x else x
+                    miny = miny if miny < y else y
+                    maxy = maxy if maxy > y else y
+                    svg +=('M' if idx==0 else 'L')+' '+str(x*factor)+','+str(-y*factor)+' '
+                svg += 'Z"'
+                svg += ' fill="'+("var(--bs-parcel)" if (feature.id_ign[0] == 'p') else "var(--bs-building)")+'"'
+                svg += ' />'
+
+        svg += '<g transform="scale(1,-1)" /></svg>'
+        ratio = (maxy-miny)/(maxx-minx)
+        sizex = size
+        sizey = sizex * ratio
+        return '<svg class="'+" ".join(classes)+'" width="'+str(ssize)+'" viewBox="'+str(factor*minx)+' '+str(-factor*maxy)+' '+str(factor*(maxx-minx))+' '+str(factor*(maxy-miny))+'" xmlns="http://www.w3.org/2000/svg">'+svg
+
+
+class Feature(db.Model):
+    __table_args__ = {'extend_existing': True}
+    id = db.Column(db.Integer(), primary_key=True)
+    id_ign = db.Column(db.String(80), nullable=False)
+    created_on = db.Column(db.DateTime(), default=datetime.utcnow)
+    geometry = db.Column(Geometry(srid=4326))
+    properties =  db.Column(mutable_json_type(dbtype=JSONB, nested=True))
+    map_id = db.Column(UUID(as_uuid=True), db.ForeignKey('map.id'), nullable=False)
+    def toGeo(self):
+        return {'type': 'Feature',
+                'id': self.id_ign,
+                'geometry': shapely.geometry.mapping(to_shape(self.geometry)),
+                'properties': self.properties,
+                }

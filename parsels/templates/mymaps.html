@@ -43,7 +43,7 @@ crossorigin=""/>
                 <i class="fas fa-calculator"></i>
               </div>
               <div class="col">
-                <span> {{ plan.parcels|length }}</span>
+                <span> {{ plan.features|length }}</span>
               </div>
             </h6>
           </div>
@@ -66,7 +66,8 @@ crossorigin=""/>
                     <small class="">Dernière modification : {{ plan.updated_on }}</small>
                   </div>
                   <div>
-                    <a class="btn btn-outline-dark" href="{{ url_for('map_view', mapid = plan.id) }}">
+                    <a href='data:image/svg+xml;utf8,{{ plan.toSVG('100%')|safe }}' download="{{ plan.id }}.svg">download SVG</a>
+                    <a class="btn btn-outline-dark" href="/map/,,,{{ plan.id }},">
                       <i class="far fa-eye"></i>
                     </a>
                     <a class="btn btn-outline-dark"  href="{{ url_for('map_edit', mapid = plan.id) }}">

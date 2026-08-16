@@ -14,3 +14,16 @@ Thumbs.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
+
+# Local environment and virtualenv
+.env
+venv/
+
+# Local runtime/output files
+nohup.out
+
+# Large local datasets (not versioned)
+assets/cadastre-*.json
+
+# Local working notes
+makeitwormanifest.md
