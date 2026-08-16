@@ -2,7 +2,7 @@ import multiprocessing
 import os
 
 
-bind = os.getenv("GUNICORN_BIND", "unix:/run/parcelleapp/gunicorn.sock")
+bind = os.getenv("GUNICORN_BIND", f"0.0.0.0:{os.getenv('PORT', '8000')}")
 workers = int(os.getenv("GUNICORN_WORKERS", multiprocessing.cpu_count() * 2 + 1))
 threads = int(os.getenv("GUNICORN_THREADS", "2"))
 worker_class = os.getenv("GUNICORN_WORKER_CLASS", "gthread")

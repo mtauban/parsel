@@ -1,59 +1,70 @@
-# Deployment Guide (VPS)
+# Déploiement sur Coolify
 
-## Current topology
+Le projet est déployable comme une application **Dockerfile**. Le conteneur
+exécute Gunicorn sur le port `8000` (ou la valeur de `PORT`) et expose une sonde
+HTTP non authentifiée sur `/health`.
 
-- Nginx reverse proxy
-- Gunicorn app server
-- Supervisor process manager
-- App path: `/home/mtauban/parcelle.app/parcelleapp`
+## Créer l'application
 
-## 1. Sync code and create venv
+1. Dans Coolify, créez une application à partir du dépôt GitHub et choisissez
+   la branche `ign`.
+2. Sélectionnez le build pack **Dockerfile**, avec le répertoire de base `/` et
+   le Dockerfile `Dockerfile`.
+3. Dans *Network*, exposez le port `8000` et associez le domaine à ce port
+   (par exemple `https://parcelle.app:8000`). Le proxy Coolify sert ensuite le
+   domaine en HTTPS standard.
+4. Activez la vérification de santé sur `GET /health`, port `8000`, avec le code
+   attendu `200`. Le `HEALTHCHECK` du Dockerfile fournit la même vérification.
 
-```bash
-cd /home/mtauban/parcelle.app/parcelleapp
-python3.12 -m venv venv
-source venv/bin/activate
-pip install --upgrade pip setuptools wheel
-pip install -r requirements.txt
+## Variables d'environnement
+
+Ajoutez ces variables dans Coolify comme variables **runtime** uniquement. Ne
+committez jamais le fichier `.env` ou les secrets.
+
+```dotenv
+FLASK_DEBUG=0
+SECRET_KEY=<secret-long-et-aleatoire>
+SECURITY_PASSWORD_SALT=<secret-long-et-aleatoire>
+DATABASE_URI=postgresql+psycopg://<user>:<password>@<host>:5432/<database>
+
+MAIL_SERVER=ssl0.ovh.net
+MAIL_PORT=587
+MAIL_USE_TLS=true
+MAIL_USE_SSL=false
+MAIL_USERNAME=<adresse-expediteur>
+MAIL_PASSWORD=<mot-de-passe>
+MAIL_DEFAULT_SENDER=<adresse-expediteur>
+
+IGN_API_KEY=
+IGN_USER_AGENT=parcelle-recs
+GEOCODE_API_KEY=
+MAPBOX_ACCESS_TOKEN=
+
+CACHE_TYPE=filesystem
+CACHE_DEFAULT_TIMEOUT=300
+CACHE_DIR=/tmp/
+GUNICORN_WORKERS=2
+GUNICORN_THREADS=2
 ```
 
-## 2. Configure environment
+La base PostgreSQL doit disposer de l'extension PostGIS avant l'initialisation :
 
-Create/update `.env` in app root from `.env.example`.
-
-Important:
-- Keep secrets only in `.env`
-- Do not keep secrets in Supervisor config
-
-## 3. Install Supervisor program file
-
-```bash
-sudo cp deploy/parcelleapp.supervisor.conf.example /etc/supervisor/conf.d/parcelleapp.conf
-sudo supervisorctl reread
-sudo supervisorctl update
-sudo supervisorctl restart parcelleapp
+```sql
+CREATE EXTENSION IF NOT EXISTS postgis;
 ```
 
-## 4. Install Nginx site file
+`init_database.py` crée les tables mais importe également le jeu de données
+local `assets/cadastre-71-parcelles.json`. Pour une base déjà existante, il n'a
+pas à être lancé au déploiement. Préparez cette base séparément (ou attachez le
+jeu de données de manière explicite) avant le premier trafic.
 
-TCP variant (aligned with current VPS):
+## Déployer et vérifier
 
-```bash
-sudo cp deploy/nginx.parcelleapp.tcp.conf.example /etc/nginx/sites-available/parcelleapp
-sudo ln -sf /etc/nginx/sites-available/parcelleapp /etc/nginx/sites-enabled/parcelleapp
-sudo nginx -t
-sudo systemctl reload nginx
-```
+Cliquez sur **Deploy** dans Coolify. Après le premier déploiement, vérifiez les
+journaux Gunicorn, la sonde `/health`, puis l'application derrière son domaine.
 
-## 5. Verify
+## Ancien déploiement manuel
 
-```bash
-sudo supervisorctl status parcelleapp
-curl -I https://parcelle.app
-```
-
-## Optional
-
-If you prefer systemd over Supervisor, use:
-- `deploy/parcelleapp.service.example`
-- `deploy/nginx.parcelleapp.conf.example`
+Les fichiers `deploy/` et les instructions Supervisor/Nginx correspondaient au
+déploiement VPS manuel précédent. Coolify remplace ces composants par Docker,
+Gunicorn et son proxy intégré.

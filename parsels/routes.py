@@ -52,6 +52,12 @@ def entrypoint():
         return redirect(url_for('home'))
 
 
+@app.get('/health')
+def health():
+    """Liveness probe for the reverse proxy and container platform."""
+    return {"status": "ok"}
+
+
 @app.route('/home')
 def home():
     return  render_template('home.html')
